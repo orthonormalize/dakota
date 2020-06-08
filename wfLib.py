@@ -61,11 +61,20 @@ def readAllSheets(xlFile):
     return D
 
 
-def makeDicts(M):
-    # input: dict of DFs generated from map file
-        # should contain an entry called 'keys'
-    # output: generate a hash table from each entry in 'keys'
+def makeDicts(M,startswith='data'):
+    # input: dict of DFs generated from reading all sheets of map file
+        # should contain one sheet called 'dicts' that lists all key fields in format: sheet name, field name
+        # optional input argument 'startswith' appends a string to the beginning of each sheet name string
+    # generate a hash table from each entry in 'dicts'
         # assert uniqueness of corresponding table/field
-    # output a dict parent for all resultant hash tables
+    # then output: a dict parent pointing to all keyfields, then valuefields as nested hash tables
     
+    D = {table:{} for table in getattr(M.get('dicts'),'SHEET').unique()}
+    for (_,(sh,key)) in M.get('dicts').iterrows():
+        fullsheetname = startswith+sh
+        df = (M.get(fullsheetname))
+        pS = getattr(df,key)
+        assert pS.is_unique,('Found at least one duplicate value in %s:%s' % (fullsheetname,key))
+        df_key = df.set_index(key,drop=True,inplace=False)
+        D[sh][key]={col:(df_key[col].to_dict()) for col in df_key}
     return D
