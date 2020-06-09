@@ -9,13 +9,14 @@ import os
 import datetime
 import wfLib as WL
 
-mapfile = 'maps v800.xlsx'
+mapfile = r'C:\Users\rek\Desktop\lightwave\sleekdata\maps v800.xlsx'
 
 
 if __name__ == '__main__':
     CL = WL.commandLine2Dict(sys.argv)   # sys.argv collects all input args as strings
     print(CL)
     M = WL.readAllSheets(mapfile)
-    print(M['dataVendor'].head())
-    print()
+    X = dict.fromkeys(['data','params','proc'])
+    (X['data'],X['params']) = (WL.makeDicts(M),WL.makeParams(M))
+    print(X['params'])
     print('Done')

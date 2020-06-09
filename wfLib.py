@@ -55,7 +55,7 @@ def readAllSheets(xlFile):
             columns = next(data)[0:] # get header line separately
             D[sh] = pd.DataFrame(data, columns=columns)
             D[sh] = D[sh][[c for c in columns if c]]  # rm extra columns (caused by sheets with cell colors / old edits ???)
-            D[sh] = D[sh].applymap(lambda x: ('' if (x==None) else str(x)))
+            D[sh] = D[sh].applymap(lambda x: ('' if (x==None) else str(x)))  # converts all data to str. Revisit?
         except StopIteration:
             pass
     return D
@@ -78,3 +78,6 @@ def makeDicts(M,startswith='data'):
         df_key = df.set_index(key,drop=True,inplace=False)
         D[sh][key]={col:(df_key[col].to_dict()) for col in df_key}
     return D
+
+def makeParams(M,sheetname='params'):
+    return (M.get(sheetname).set_index('Parameter',drop=True)['Value'].to_dict())
