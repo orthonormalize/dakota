@@ -10,6 +10,14 @@ import io
 import datetime
 from openpyxl import load_workbook
 
+class Procedure:
+    def __init__(self,name,M):
+        self.name = name
+        sh = 'proc'+name
+        self.instructions = M[sh] # instructionList(M[sh])
+
+
+
 def commandLine2Dict(CL):
     # input: list of command line arguments
         # m: mapfile
@@ -57,18 +65,18 @@ def readAllSheets(xlFile):
             D[sh] = D[sh][[c for c in columns if c]]  # rm extra columns (caused by sheets with cell colors / old edits ???)
             D[sh] = D[sh].applymap(lambda x: ('' if (x==None) else str(x)))  # converts all data to str. Revisit?
         except StopIteration:
+            # ignore empty sheets
             pass
     return D
 
 
-def makeDicts(M,startswith='data'):
+def makeDatadicts(M,startswith='data'):
     # input: dict of DFs generated from reading all sheets of map file
         # should contain one sheet called 'dicts' that lists all key fields in format: sheet name, field name
         # optional input argument 'startswith' appends a string to the beginning of each sheet name string
     # generate a hash table from each entry in 'dicts'
         # assert uniqueness of corresponding table/field
-    # then output: a dict parent pointing to all keyfields, then valuefields as nested hash tables
-    
+    # then output: a dict parent pointing to all keyfields, then valuefields as nested hash tables 
     D = {table:{} for table in getattr(M.get('dicts'),'SHEET').unique()}
     for (_,(sh,key)) in M.get('dicts').iterrows():
         fullsheetname = startswith+sh
