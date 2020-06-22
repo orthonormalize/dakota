@@ -80,6 +80,24 @@ def nestSheets(M,startswith):
             outD[shortName] = M[k]
     return outD
 
+def df2dict(df,keys,fullsheetname):
+    # Function: create a dictionary of function mappings from a DF and a list of which fields are keys
+    # input: pandas DataFrame
+    # output: Triply nested dict
+        # lev 1 keys = keys arg
+        # lev 2 keys = each other field in the DF
+        # lev 3 keys = DF values of the key field. Enforces uniqueness
+        # values     = DF values of the field (lev2 key)
+    D=dict.fromkeys(keys,0)
+    for k1 in keys:
+        pS = getattr(df,k1)
+        assert pS.is_unique,('Found at least one duplicate value in %s:%s' % (fullsheetname,k1))
+        df_k1 = df.set_index(k1,drop=True,inplace=False)
+        D[k1] = {col:(df_k1[col].to_dict()) for col in df_k1}
+    return D
+        
+        
+
 def makeDatadicts(M,startswith='data'):
     # input: dict of DFs generated from reading all sheets of map file
         # should contain one sheet called 'dicts' that lists all key fields in format: sheet name, field name
