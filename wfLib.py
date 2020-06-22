@@ -69,6 +69,16 @@ def readAllSheets(xlFile):
             pass
     return D
 
+def nestSheets(M,startswith):
+    # input: dict of DFs generated from reading all sheets of map file
+    # output: smaller dict of DFs, consisting only of the sheets whose names begin with string 'startswith'
+        # that string will be chopped off of the new dictionary names
+    outD = {}
+    for k in M.keys():
+        if (k.startswith(startswith)):
+            shortName = k[len(startswith):]
+            outD[shortName] = M[k]
+    return outD
 
 def makeDatadicts(M,startswith='data'):
     # input: dict of DFs generated from reading all sheets of map file
