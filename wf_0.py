@@ -18,8 +18,12 @@ if __name__ == '__main__':
     M = WL.readAllSheets(mapfile)
     assert (('proc'+proc) in M), "Procedure %s not found." % proc
     print('Executing Procedure %s' % proc)
+    
+    # transform input data to representation X
     X = dict.fromkeys(['data','procs','params','computes','fields'])
     X['procs'] = WL.nestSheets(M,'proc')
     X['data'] = WL.makeDatadicts(M,startswith='data')
     X['params'] = WL.makeParams(M)
+    (X['computes'],X['fields']) = (M['computes'],M['fields'])
+    
     print('Done')
