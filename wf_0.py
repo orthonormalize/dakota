@@ -19,6 +19,7 @@ if __name__ == '__main__':
     assert (('proc'+proc) in M), "Procedure %s not found." % proc
     print('Executing Procedure %s' % proc)
     X = dict.fromkeys(['data','procs','params','computes','fields'])
-    (X['data'],X['procs']) = (WL.nestSheets(M,'data'),WL.nestSheets(M,'proc'))
+    X['procs'] = WL.nestSheets(M,'proc')
+    X['data'] = WL.makeDatadicts(M,startswith='data')
     X['params'] = WL.makeParams(M)
     print('Done')

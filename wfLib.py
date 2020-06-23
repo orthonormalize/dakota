@@ -97,7 +97,6 @@ def df2dict(df,keys,fullsheetname):
     return D
         
         
-
 def makeDatadicts(M,startswith='data'):
     # input: dict of DFs generated from reading all sheets of map file
         # should contain one sheet called 'dicts' that lists all key fields in format: sheet name, field name
@@ -107,12 +106,11 @@ def makeDatadicts(M,startswith='data'):
     # then output: a dict parent pointing to all keyfields, then valuefields as nested hash tables 
     D = {table:{} for table in getattr(M.get('dicts'),'SHEET').unique()}
     for (_,(sh,key)) in M.get('dicts').iterrows():
-        fullsheetname = startswith+sh
-        df = (M.get(fullsheetname))
-        pS = getattr(df,key)
-        assert pS.is_unique,('Found at least one duplicate value in %s:%s' % (fullsheetname,key))
-        df_key = df.set_index(key,drop=True,inplace=False)
-        D[sh][key]={col:(df_key[col].to_dict()) for col in df_key}
+        D[sh][key]={}
+    for sh in D:
+        fullsheetname=startswith+sh
+        df = M.get(fullsheetname)
+        D[sh] = df2dict(df,D[sh].keys(),fullsheetname)
     return D
 
 def makeParams(M,sheetname='params'):
