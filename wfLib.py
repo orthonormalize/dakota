@@ -10,13 +10,54 @@ import io
 import datetime
 from openpyxl import load_workbook
 
-class Procedure:
-    def __init__(self,name,M):
-        self.name = name
-        sh = 'proc'+name
-        self.instructions = M[sh] # instructionList(M[sh])
+class Statement:
+    def __init__(self,*args,**kwargs):
+        pass
+    
+class Loop:
+    def __init__(self,*args,**kwargs):
+        pass
 
+class InstructionList:
+    def __init__(self,myInput,procname):
+        self.procname = procname
+        self.instructions=[]
+        if (isinstance(myInput,list)):  # placeholder
+            pass
+        if ((isinstance(myInput,dict)) and ('procs' in myInput) and (procname in myInput.get('procs'))):
+            # reading from procedure df. So extract df:
+            myInput = myInput['procs'][procname]
+        if (isinstance(myInput,pd.DataFrame)):
+            self.instructions = InstructionList.parseDF(myInput,procname)
+            
+    @staticmethod
+    def parseDF(df,procname):
+        (nest,bodies,loopEntranceTuple)=(0,[[]],[])
+        for T in df.itertuples():
+            if InstructionList.isLoopEntrance(T):
+                nest+=1
+                indentFrom.append(T)
+            elif InstructionList.isLoopExit(T):
+                assert (nest>0), "Cannot parse loop nesting: %s" % procname
+                bodies[nest-1].append(Loop(loopEntranceTuple.pop(),bodies[nest],procname))
+                nest-=1
+            else:
+                bodies[nest].append(Statement(T,procname))
+        return bodies[0]
+    
+    @staticmethod
+    def isLoopEntrance(T):
+        return False
+    
+    @staticmethod
+    def isLoopExit(T):
+        return False
 
+class Procedure(InstructionList):
+    def __init__(self,X,procname):
+        super().__init__(X,procname)
+        assert ((procname) and isinstance(procname,str)), 'Procedure name %s must be type str' % (str(procname))
+        assert (('procs' in X) and (procname in X['procs'])), 'Procedure %s not found' % procname
 
 def commandLine2Dict(CL):
     # input: list of command line arguments
