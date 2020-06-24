@@ -55,9 +55,9 @@ class InstructionList:
 
 class Procedure(InstructionList):
     def __init__(self,X,procname):
-        super().__init__(X,procname)
         assert ((procname) and isinstance(procname,str)), 'Procedure name %s must be type str' % (str(procname))
         assert (('procs' in X) and (procname in X['procs'])), 'Procedure %s not found' % procname
+        super().__init__(X,procname)
 
 def commandLine2Dict(CL):
     # input: list of command line arguments
