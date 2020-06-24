@@ -29,17 +29,18 @@ class InstructionList:
             myInput = myInput['procs'][procname]
         if (isinstance(myInput,pd.DataFrame)):
             self.instructions = InstructionList.parseDF(myInput,procname)
-            
+
     @staticmethod
     def parseDF(df,procname):
-        (nest,bodies,loopEntranceTuple)=(0,[[]],[])
+        (nest,bodies,loopEntranceTuplist)=(0,[[]],[])
         for T in df.itertuples():
             if InstructionList.isLoopEntrance(T):
                 nest+=1
-                indentFrom.append(T)
+                bodies.append([])
+                loopEntranceTuplist.append(T)
             elif InstructionList.isLoopExit(T):
                 assert (nest>0), "Cannot parse loop nesting: %s" % procname
-                bodies[nest-1].append(Loop(loopEntranceTuple.pop(),bodies[nest],procname))
+                bodies[nest-1].append(Loop(loopEntranceTuplist.pop(),bodies[nest],procname))
                 nest-=1
             else:
                 bodies[nest].append(Statement(T,procname))
