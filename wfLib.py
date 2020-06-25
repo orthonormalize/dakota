@@ -20,10 +20,12 @@ class Statement:
         self.k = kwargs
     
 class Loop:
-    def __init__(self,*args,**kwargs):
+    def __init__(self,controlString,body,procname,*args,**kwargs):
+        self.controlString=controlString
+        self.body = body
+        self.procname = procname
         self.a = args
         self.k = kwargs
-        pass
 
 class InstructionList:
     def __init__(self,myInput,procname):
@@ -49,7 +51,7 @@ class InstructionList:
             elif InstructionList.isLoopExit(T):
                 assert ((not(T.FROM)) and (not(T.TO))), 'proc%s: Loop Exit must have empty FROM and TO' % procname
                 assert (nest>0), 'proc%s: Too many Loop Exits' % procname
-                bodies[nest-1].append(Loop(loopEntranceTuplist.pop(),bodies[nest],procname=procname))
+                bodies[nest-1].append(Loop(controlString=loopEntranceTuplist.pop().TASK,body=bodies[nest],procname=procname))
                 nest-=1
             else:
                 bodies[nest].append(Statement(TFT=T,procname=procname))
