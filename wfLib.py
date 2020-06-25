@@ -11,8 +11,14 @@ import datetime
 from openpyxl import load_workbook
 
 class Statement:
-    def __init__(self,*args,**kwargs):
-        pass
+    def __init__(self,TFT,procname,*args,**kwargs):
+        self.TASK = TFT.TASK
+        self.FROM = TFT.FROM
+        self.TO = TFT.TO
+        self.procname = procname
+        self.a = args
+        self.k = kwargs
+    
     
 class Loop:
     def __init__(self,*args,**kwargs):
