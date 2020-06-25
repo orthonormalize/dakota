@@ -8,6 +8,7 @@ import sys
 import os
 import datetime
 import wfLib as WL
+import zTestHarness as Z
 
 mapfile = r'C:\Users\rek\Desktop\lightwave\sleekdata\maps v800.xlsx'
 
@@ -26,4 +27,5 @@ if __name__ == '__main__':
     X['params'] = WL.makeParams(M)
     (X['computes'],X['fields']) = (M['computes'],M['fields'])
     
+    Z.executeTestHarness(X)
     print('Done')
