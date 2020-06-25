@@ -10,7 +10,14 @@ import io
 import datetime
 from openpyxl import load_workbook
 
-class Statement:
+
+class Instruction:
+    
+    def parseExpr(self,attr):
+        return getattr(self,attr) # placeholder just echoes back the string to be parsed
+
+    
+class Statement(Instruction):
     def __init__(self,TFT,procname,*args,**kwargs):
         self.TASK = TFT.TASK
         self.FROM = TFT.FROM
@@ -21,8 +28,9 @@ class Statement:
     
     def execute(self):
         print('placeholder: execute ' + self.TASK)
-        
-class Loop:
+    
+    
+class Loop(Instruction):
     def __init__(self,controlString,body,procname,*args,**kwargs):
         self.controlString=controlString
         self.body = InstructionList(body,procname)
@@ -32,7 +40,8 @@ class Loop:
 
     def execute(self):
         print('placeholder loop exec ' + self.controlString)
-        
+      
+    
 class InstructionList:
     def __init__(self,myInput,procname):
         self.procname = procname
@@ -77,12 +86,14 @@ class InstructionList:
     def isLoopExit(T):
         return (T.TASK.startswith('end for'))
 
+    
 class Procedure(InstructionList):
     def __init__(self,X,procname):
         assert ((procname) and isinstance(procname,str)), 'Procedure name %s must be type str' % (str(procname))
         assert (('procs' in X) and (procname in X['procs'])), 'Procedure %s not found' % procname
         super().__init__(X,procname)
 
+        
 def commandLine2Dict(CL):
     # input: list of command line arguments
         # m: mapfile
