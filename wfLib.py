@@ -19,26 +19,37 @@ class Statement:
         self.a = args
         self.k = kwargs
     
+    def execute(self):
+        print('placeholder: execute ' + self.TASK)
+        
 class Loop:
     def __init__(self,controlString,body,procname,*args,**kwargs):
         self.controlString=controlString
-        self.body = body
+        self.body = InstructionList(body,procname)
         self.procname = procname
         self.a = args
         self.k = kwargs
 
+    def execute(self):
+        print('placeholder loop exec ' + self.controlString)
+        
 class InstructionList:
     def __init__(self,myInput,procname):
         self.procname = procname
         self.instructions=[]
         if (isinstance(myInput,list)):  # placeholder
-            pass
+            self.instructions=myInput
         if ((isinstance(myInput,dict)) and ('procs' in myInput) and (procname in myInput.get('procs'))):
             # reading from procedure df. So extract df:
             myInput = myInput['procs'][procname]
         if (isinstance(myInput,pd.DataFrame)):
             self.instructions = InstructionList.parseDF(myInput,procname)
 
+    def execute(self):
+        assert(isinstance(self.instructions,list))
+        for instruction in self.instructions:
+            instruction.execute()
+        
     @staticmethod
     def parseDF(df,procname):
         (nest,bodies,loopEntranceTuplist)=(0,[[]],[])
