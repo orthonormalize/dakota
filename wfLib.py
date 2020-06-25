@@ -19,9 +19,10 @@ class Statement:
         self.a = args
         self.k = kwargs
     
-    
 class Loop:
     def __init__(self,*args,**kwargs):
+        self.a = args
+        self.k = kwargs
         pass
 
 class InstructionList:
@@ -41,24 +42,27 @@ class InstructionList:
         (nest,bodies,loopEntranceTuplist)=(0,[[]],[])
         for T in df.itertuples():
             if InstructionList.isLoopEntrance(T):
+                assert ((not(T.FROM)) and (not(T.TO))), 'proc%s: Loop Entrance must have empty FROM and TO' % procname
                 nest+=1
                 bodies.append([])
                 loopEntranceTuplist.append(T)
             elif InstructionList.isLoopExit(T):
-                assert (nest>0), "Cannot parse loop nesting: %s" % procname
-                bodies[nest-1].append(Loop(loopEntranceTuplist.pop(),bodies[nest],procname))
+                assert ((not(T.FROM)) and (not(T.TO))), 'proc%s: Loop Exit must have empty FROM and TO' % procname
+                assert (nest>0), 'proc%s: Too many Loop Exits' % procname
+                bodies[nest-1].append(Loop(loopEntranceTuplist.pop(),bodies[nest],procname=procname))
                 nest-=1
             else:
-                bodies[nest].append(Statement(T,procname))
+                bodies[nest].append(Statement(TFT=T,procname=procname))
+        assert ((nest==0) and (not(loopEntranceTuplist))), 'proc%s: Unclosed Loop' % procname
         return bodies[0]
     
     @staticmethod
     def isLoopEntrance(T):
-        return False
+        return (T.TASK.startswith('for '))
     
     @staticmethod
     def isLoopExit(T):
-        return False
+        return (T.TASK.startswith('end for'))
 
 class Procedure(InstructionList):
     def __init__(self,X,procname):
