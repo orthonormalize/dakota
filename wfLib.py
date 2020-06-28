@@ -20,8 +20,8 @@ class Instruction:
 class Statement(Instruction):
     def __init__(self,TFT,procname,*args,**kwargs):
         self.TASK = TFT.TASK
-        self.FROM = TFT.FROM
-        self.TO = TFT.TO
+        self.GET = TFT.GET
+        self.SET = TFT.SET
         self.procname = procname
         self.a = args
         self.k = kwargs
@@ -64,12 +64,12 @@ class InstructionList:
         (nest,bodies,loopEntranceTuplist)=(0,[[]],[])
         for T in df.itertuples():
             if InstructionList.isLoopEntrance(T):
-                assert ((not(T.FROM)) and (not(T.TO))), 'proc%s: Loop Entrance must have empty FROM and TO' % procname
+                assert ((not(T.GET)) and (not(T.SET))), 'proc%s: Loop Entrance must have empty GET and SET' % procname
                 nest+=1
                 bodies.append([])
                 loopEntranceTuplist.append(T)
             elif InstructionList.isLoopExit(T):
-                assert ((not(T.FROM)) and (not(T.TO))), 'proc%s: Loop Exit must have empty FROM and TO' % procname
+                assert ((not(T.GET)) and (not(T.SET))), 'proc%s: Loop Exit must have empty GET and SET' % procname
                 assert (nest>0), 'proc%s: Too many Loop Exits' % procname
                 bodies[nest-1].append(Loop(controlString=loopEntranceTuplist.pop().TASK,body=bodies[nest],procname=procname))
                 nest-=1
