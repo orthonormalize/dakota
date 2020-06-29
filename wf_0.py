@@ -1,13 +1,9 @@
 # 20200601:
 # gamma main
 
-import numpy as np
-import pandas as pd
-#import re
 import sys
-import os
-import datetime
 import wfLib as WL
+import wfClass as WC
 import zTestHarness as Z
 
 mapfile = r'C:\Users\rek\Desktop\lightwave\sleekdata\maps v800.xlsx'
