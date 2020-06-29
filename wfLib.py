@@ -12,6 +12,18 @@ from openpyxl import load_workbook
 
 
 class Instruction:
+    pass
+    
+    
+class Statement(Instruction):
+    def __init__(self,X,TFT,procname,*args,**kwargs):
+        self.X=X
+        self.TASK = TFT.TASK
+        self.GET = TFT.GET
+        self.SET = TFT.SET
+        self.procname = procname
+        self.a = args
+        self.k = kwargs
     
     def parseExpr(self,attr,temp=[]): # temp===workspace of objects currently being processed (i.e. variable '@' in excel file)
         s = getattr(self,attr)
@@ -36,21 +48,13 @@ class Instruction:
             return (out or None)
         else: # (attr=='TASK')
             return(s) # placeholder
-    
-    
-class Statement(Instruction):
-    def __init__(self,X,TFT,procname,*args,**kwargs):
-        self.X=X
-        self.TASK = TFT.TASK
-        self.GET = TFT.GET
-        self.SET = TFT.SET
-        self.procname = procname
-        self.a = args
-        self.k = kwargs
-    
+        
     def execute(self):
-        print('placeholder: execute ' + self.TASK)
-    
+        print('placeholder: begin executing ' + self.TASK)
+        self.X['@'] = self.parseExpr('GET')
+        self.X['@'] = self.parseExpr('TASK',self.X['@'])
+        self.parseExpr('SET',self.X['@'])
+        print('placeholder: done executing ' + self.TASK)
     
 class Loop(Instruction):
     def __init__(self,X,controlString,body,procname,*args,**kwargs):
@@ -60,6 +64,11 @@ class Loop(Instruction):
         self.procname = procname
         self.a = args
         self.k = kwargs
+        
+    def parseExpr(self,attr):
+        s = getattr(self,attr)
+        print('placeholder: loop parse %s' % s)
+        return(s)
         
     def execute(self):
         print('placeholder loop exec ' + self.controlString)
