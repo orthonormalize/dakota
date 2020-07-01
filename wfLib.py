@@ -10,7 +10,8 @@ import io
 import datetime
 from openpyxl import load_workbook
 
-
+def readQC(): # placeholder
+    return 73
         
 def commandLine2Dict(CL):
     # input: list of command line arguments

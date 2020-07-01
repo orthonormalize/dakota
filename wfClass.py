@@ -9,18 +9,19 @@ import datetime
 globs = {k:globals()[k] for k in globals() if not (k.startswith('_'))}
 
 class Instruction:
-    pass
+    def __init__(self,*args,**kwargs):
+        self.a=args
+        self.k=kwargs
+        self.X=self.k['X']
+        self.procname=self.k['procname']
     
     
 class Statement(Instruction):
-    def __init__(self,X,TFT,procname,*args,**kwargs):
-        self.X=X
-        self.TASK = TFT.TASK
-        self.GET = TFT.GET
-        self.SET = TFT.SET
-        self.procname = procname
-        self.a = args
-        self.k = kwargs
+    def __init__(self,*args,**kwargs):
+        super().__init__(*args,**kwargs)
+        self.TASK = self.k['TFT'].TASK
+        self.GET = self.k['TFT'].GET
+        self.SET = self.k['TFT'].SET
     
     def parseExpr(self,attr,temp=[]): # temp===workspace of objects currently being processed (i.e. variable '@' in excel file)
         s = getattr(self,attr)
@@ -54,13 +55,10 @@ class Statement(Instruction):
         print('placeholder: done executing ' + self.TASK)
     
 class Loop(Instruction):
-    def __init__(self,X,controlString,body,procname,*args,**kwargs):
-        self.X=X
-        self.controlString=controlString
-        self.body = InstructionList(self.X,procname,body)
-        self.procname = procname
-        self.a = args
-        self.k = kwargs
+    def __init__(self,*args,**kwargs):
+        super().__init__(*args,**kwargs)
+        self.controlString=self.k['controlString']
+        self.body = InstructionList(self.X,self.procname,self.k['body'])
         
     def parseExpr(self,attr):
         s = getattr(self,attr)
