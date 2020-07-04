@@ -8,6 +8,17 @@ import datetime
 
 globs = {k:globals()[k] for k in globals() if not (k.startswith('_'))}
 
+
+
+def getter(container,item):
+    if (isinstance(container,dict)):
+        return dict.get(container,item)
+    elif (isinstance(container,list)):
+        return container[item]
+    else:
+        return getattr(container,item)
+    
+
 class Instruction:
     def __init__(self,*args,**kwargs):
         self.a=args
