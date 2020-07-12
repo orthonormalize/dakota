@@ -9,6 +9,73 @@ import datetime
 globs = {k:globals()[k] for k in globals() if not (k.startswith('_'))}
 
 
+# Define lots of object types, with inheritances
+class o4StrJoin:                          # item handle needs conversion from charList to str, via (''.join())
+    pass
+
+class oAttr:                              # item follows '.'
+    pass
+class oNonAttr:                           # item occurring at start of expression, or following ',', or following any BG
+    pass
+
+class oLiteral(o4StrJoin):                # item that explicitly states its value w/o references (e.g str, int, bool)
+    pass
+
+class oStr(oLiteral):                          
+    pass
+class oStr1(oStr):
+    pass
+class oStr2(oStr):
+    pass
+class oInt(oLiteral):                   
+    pass
+class oIntAttr(oInt,oAttr):               # index into list, or dict key (if key is type int) 
+    pass
+class oBool(oLiteral):
+    pass
+
+class oIdent(o4StrJoin):                  # {@,#,P,K,M,W} {xat,hashat,property,key(dict),method,callable keyword}
+    pass
+class oXat(oIdent):                       # {@} 
+    pass
+class oHashat(oIdent):                    # {#}
+    pass
+class oPKMW(oIdent):                      # {P,K,M,W}
+    pass
+class oKeyword(oPKMW,oNonAttr):           # string representing the keyword for a callable kwarg 
+    pass
+class oPKM(oPKMW,oAttr):                  # {P,K,M} {obj property, dict key, method (either instanceM, or staticM from a lib)}
+    pass
+class oCallable(oPKM,oAttr):              # {M}: either instance method (df.sort_values()) or static method (pd.concat())
+    pass
+
+class oInternal:                          # object type is internal only (i.e. never visible at mT[-1])
+    pass
+class oList(oInternal):
+    pass
+class oDict(oInternal):
+    pass
+class oCallable(oInternal):
+    pass
+    
+class oPre:
+    pass
+class oPreAttr(oPre):                     # invoked after '.'
+    pass
+class oPreNonAttr(oPre):                  # invoked (1) at $ (2) after ',' or (3) after any BG
+    pass
+
+class oPost:
+    pass
+class oPostList(oPost):                   # invoked after ']' 
+    pass
+class oPostCallable(oPost):               # invoked after ')'
+    pass
+class oPostDict(oPost):                   # invoked after '}' (placeholder)
+    pass
+class oPostStr(oPost,oLiteral,o4StrJoin): # invoked after endstring character
+    pass
+
 
 def getter(container,item):
     if (isinstance(container,dict)):
