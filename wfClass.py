@@ -92,7 +92,60 @@ class Instruction:
         self.k=kwargs
         self.X=self.k['X']
         self.procname=self.k['procname']
+       
     
+    def getObj7(self,s,obj0=None,ifEmpty=None,ignoreLevels=0):
+        # s === string that refers to a chain that can be resolved into objects and/or methods
+        # Find and return the corresponding object within the dataStructure.
+        # s can be empty. If so, return ifEmpty
+        
+        def executeCallable():
+            # input state:
+                # callableDictStack[-1] must be dict {kwQ,keyList,cur}. Keywords obtained here. ===> D
+                # final two elements of container[-1] should be:
+                    # method (either boundMethod of instance, or staticMethod of another class): ===> objFUNK
+                    # list of arguments to be passed into the callable: ===> argList
+            # output state:
+                # callableDictStack has popped off one used item
+                # container[-1]: two items popped off (objFUNK, argList); then one item pushed (output from method call)
+                
+            D = callableDictStack.pop()
+            argList = container[-1].pop()
+            objFUNK = container[-1].pop()
+            assert(len(argList)==len(D['keyList']))
+            dex=0
+            while dex in D['keyList']:
+                dex+=1
+            A = argList[:dex]
+            K = dict(zip(D['keyList'][dex:],argList[dex:]))
+            container[-1].append(objFUNK(*A,**K))
+        
+        def resolve():
+            # placeholder for rest of resolve (i.e. stepOut) function
+            if (isinstance(mT[-1],oPostCallable)):
+                executeCallable()
+            
+        def stepIn():
+            pass
+               
+        mT = [None,oPre()]
+        container = [[obj0],[]]
+        callableDictStack = []
+        # placeholder for testing:
+        print()
+        print((mT,[type(x) for x in container[-1]],callableDictStack))
+        testPacket = self.X['testPacket_for_getObj']
+        callableDictStack.append(testPacket['kwDict'])
+        container[-1].append(testPacket['objFunk'])
+        container[-1].append(testPacket['argList'])
+        mT[-1] = testPacket['myClass']
+        print((mT,[type(x) for x in container[-1]],callableDictStack))
+        resolve()
+        print((mT,[type(x) for x in container[-1]],callableDictStack))
+        print((mT,[x for x in container[-1]],callableDictStack))
+        # will process input string char by char here
+        return(999) # placeholder: return correct object here 
+        
     
 class Statement(Instruction):
     def __init__(self,*args,**kwargs):
