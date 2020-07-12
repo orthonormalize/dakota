@@ -6,7 +6,7 @@ import wfLib as WL
 import wfClass as WC
 import zTestHarness as Z
 
-mapfile = r'C:\Users\rek\Desktop\lightwave\sleekdata\maps v800.xlsx'
+mapfile = r'C:\Users\rek\Desktop\lightwave\sleekdata\maps v801.xlsx'
 
 
 if __name__ == '__main__':
