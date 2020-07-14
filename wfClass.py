@@ -77,13 +77,13 @@ class oPostStr(oPost,oLiteral,o4StrJoin): # invoked after endstring character
     pass
 
 
-def getter(container,item):
-    if (isinstance(container,dict)):
-        return dict.get(container,item)
-    elif (isinstance(container,list)):
-        return container[item]
+def getter(parent,item):
+    if (isinstance(parent,dict)):
+        return dict.get(parent,item)
+    elif (isinstance(item,int)):
+        return parent[item]
     else:
-        return getattr(container,item)
+        return getattr(parent,item)
     
 
 class Instruction:
