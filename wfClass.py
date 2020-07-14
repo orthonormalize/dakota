@@ -126,9 +126,40 @@ class Instruction:
             container[-1].append(objFUNK(*A,**K))
         
         def resolve():
-            # placeholder for rest of resolve (i.e. stepOut) function
-            if (isinstance(mT[-1],oPostCallable)):
+            # i.e. stepOut
+            # input state: ch is in {EG, ',', '.', '='}
+            # output: resolved container[-1] into previous level of stack 
+            # function: 
+                # 1) Pop container[-1]. Assemble: Combine / interpret / convert / etc., if necessary. 
+                # 2) Drop as one object into the parent level of the container stack.
+                # 3) Attribute processing: (a) get attr if PKM, or (b) execute if postcallable
+                        # (c) if neither, but destination is callable: update callableDictStack
+                # 4) Pop mT
+            R = container.pop()
+            if (isinstance(mT[-1],o4StrJoin)):
+                R=''.join(R)
+                if (isinstance(mT[-1],oIdent) and (R.lower() in mT[-1].invalidLowers)): # hack: detect and typeConvert booleans
+                    (mT[-1],R) = mT[-1].invalidLowers[R.lower()]
+                if (isinstance(mT[-1],oLiteral)):
+                    R = mT[-1].converter()(R)
+                elif (isinstance(mT[-1],oXat)):
+                    R = (self.X['@'][int(R)])
+            container[-1].append(R)
+            if (isinstance(mT[-1],oAttr)):
+                attribute = container[-1].pop()
+                baseObj = container[-1].pop()
+                container[-1].append(getter(baseObj,attribute))
+            elif (isinstance(mT[-1],oPostCallable)):
                 executeCallable()
+            elif (isinstance(mT[-2],oCallable)):
+                D = callableDictStack[-1]
+                assert (D['cur'] is not None), 'only keyword args may follow a keyword arg'
+                D['keyList'].append(D['cur'])
+                if (D['kwQ']): # kwarg:
+                    D['cur']=None
+                else: # numbered arg:
+                    D['cur']+=1
+            mT.pop()
             
         def stepIn():
             pass
@@ -136,20 +167,22 @@ class Instruction:
         mT = [None,oPre()]
         container = [[obj0],[]]
         callableDictStack = []
-        # placeholder for testing:
+        
+        # temporary testing framework:
         print()
-        print((mT,[type(x) for x in container[-1]],callableDictStack))
-        testPacket = self.X['testPacket_for_getObj']
-        callableDictStack.append(testPacket['kwDict'])
-        container[-1].append(testPacket['objFunk'])
-        container[-1].append(testPacket['argList'])
-        mT[-1] = testPacket['myClass']
-        print((mT,[type(x) for x in container[-1]],callableDictStack))
+        mT = self.X['mT']
+        container = self.X['container']
+        callableDictStack = self.X['callableDictStack']
+        
+        
+        print('before resolve:')
+        print((mT,[type(x) for x in container[-2]],[type(x) for x in container[-1]],callableDictStack))
         resolve()
-        print((mT,[type(x) for x in container[-1]],callableDictStack))
-        print((mT,[x for x in container[-1]],callableDictStack))
+        print('after resolve:')
+        print((mT,[type(x) for x in container[-2]],[type(x) for x in container[-1]],callableDictStack))
+        print((mT,[type(x) for x in container[-2]],[x for x in container[-1]],callableDictStack))
         # will process input string char by char here
-        return(999) # placeholder: return correct object here 
+        return(container[-1]) # placeholder: eventually need to return the correct object here  
         
     
 class Statement(Instruction):
