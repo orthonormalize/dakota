@@ -100,7 +100,7 @@ class Instruction:
         # s can be empty. If so, return ifEmpty
         
         def executeCallable():
-            # input state:
+            # input state: (uses vars from scope:getObj7)
                 # callableDictStack[-1] must be dict {kwQ,keyList,cur}. Keywords obtained here. ===> D
                 # final two elements of container[-1] should be:
                     # method (either boundMethod of instance, or staticMethod of another class): ===> objFUNK
@@ -112,7 +112,7 @@ class Instruction:
             D = callableDictStack.pop()
             argList = container[-1].pop()
             objFUNK = container[-1].pop()
-            assert(len(argList)==len(D['keyList']))
+            assert (len(argList)==len(D['keyList'])), 'length mismatch: keys:%d, args:%d' % (len(D['keyList']),len(argList))
             dex=0
             while dex in D['keyList']:
                 dex+=1
