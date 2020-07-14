@@ -10,7 +10,10 @@ globs = {k:globals()[k] for k in globals() if not (k.startswith('_'))}
 
 
 # Define lots of object types, with inheritances
+    # Not used for obj storage, just to define relationships
+
 class o4StrJoin:                          # item handle needs conversion from charList to str, via (''.join())
+                                                # two options: either (1) LITERAL or (2) IDENTIFIER
     pass
 
 class oAttr:                              # item follows '.'
@@ -19,24 +22,26 @@ class oNonAttr:                           # item occurring at start of expressio
     pass
 
 class oLiteral(o4StrJoin):                # item that explicitly states its value w/o references (e.g str, int, bool)
-    pass
+    def converter(self):
+        return(self.target_type)
 
-class oStr(oLiteral):                          
-    pass
+class oStr(oLiteral):
+    target_type = str   
 class oStr1(oStr):
     pass
 class oStr2(oStr):
     pass
-class oInt(oLiteral):                   
-    pass
+class oInt(oLiteral):          
+    target_type=int
+    
 class oIntAttr(oInt,oAttr):               # index into list, or dict key (if key is type int) 
     pass
 class oBool(oLiteral):
-    pass
+    target_type=bool
 
 class oIdent(o4StrJoin):                  # {@,#,P,K,M,W} {xat,hashat,property,key(dict),method,callable keyword}
-    pass
-class oXat(oIdent):                       # {@} 
+    invalidLowers = {'false':(oBool(),False),'true':(oBool(),True)}
+class oXat(oIdent):                       # {@}
     pass
 class oHashat(oIdent):                    # {#}
     pass
@@ -73,8 +78,8 @@ class oPostCallable(oPost):               # invoked after ')'
     pass
 class oPostDict(oPost):                   # invoked after '}' (placeholder)
     pass
-class oPostStr(oPost,oLiteral,o4StrJoin): # invoked after endstring character
-    pass
+class oPostStr(oPost,oLiteral):           # invoked after endstring character
+    target_type=str
 
 
 def getter(parent,item):
