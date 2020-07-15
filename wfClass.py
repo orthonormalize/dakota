@@ -161,8 +161,9 @@ class Instruction:
                     D['cur']+=1
             mT.pop()
             
-        def stepIn():
-            pass
+        def stepIn(initiateType):
+            mT.append(initiateType())
+            container.append([])
                
         mT = [None,oPre()]
         container = [[obj0],[]]
