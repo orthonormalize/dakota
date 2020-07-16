@@ -9,12 +9,44 @@ import datetime
 globs = {k:globals()[k] for k in globals() if not (k.startswith('_'))}
 
 
+
+# Constants:
+setDigits = set([chr(j) for j in range(48,58)])
+setAlpha = set([chr(j) for j in range(65,91)] + [chr(j) for j in range(97,123)])
+setAlphaUS = setAlpha.copy()
+setAlphaUS.update('_')
+setAlphaUSDigit = setAlphaUS.copy()
+setAlphaUSDigit.update(setDigits)
+
+
+
 # Define lots of object types, with inheritances
-    # Not used for obj storage, just to define relationships
+    # Not used for data storage, just to define types and relationships
 
 class o4StrJoin:                          # item handle needs conversion from charList to str, via (''.join())
                                                 # two options: either (1) LITERAL or (2) IDENTIFIER
-    pass
+    def D_s2o():
+        D = dict([(a,oPKMW) for a in setAlphaUS])
+        D.update(dict([(a,oInt) for a in setDigits]))
+        D.update({'@':oXat,'#':oHashat})
+        D.update({k:oGrouper.BG_2_objtype(k) for k in oGrouper.BG}) # FLAG: includes some irrelevant BGs here
+        return(D)
+    
+    def starter2objtype(ch0):
+        return(o4StrJoin.D_s2o()[ch0])
+    
+    def initiation_prechar(self):
+        return(self.initiation_prechar)
+
+class oGrouper:                           # any object that is closed by a specific specialCharacter
+    groupers_OC = (('()','[]','{}','""',"''"))
+    BG = [goc[0] for goc in groupers_OC]
+    EG = [goc[1] for goc in groupers_OC]
+    def BG_2_objtype(bg):
+        D_bg2obj = {'(':oCallable,'[':oList,'{':oDict,"'":oStr1,'"':oStr2}
+        return(D_bg2obj[bg])
+    def endGrouper():
+        return(self.closingChar)
 
 class oAttr:                              # item follows '.'
     pass
@@ -25,15 +57,22 @@ class oLiteral(o4StrJoin):                # item that explicitly states its valu
     def converter(self):
         return(self.target_type)
 
-class oStr(oLiteral):
+class oStr(oLiteral,oGrouper):
     target_type = str   
+    initiation_prechar = ''
+    keepEntranceCharacter = False
+    validContinuationCharacters = None    # FLAG: actually any char should be allowed. But oStr append doesn't check VCC
 class oStr1(oStr):
-    pass
+    openingChar="'"
+    closingChar="'"
 class oStr2(oStr):
-    pass
+    openingChar='"'
+    closingChar='"'
 class oInt(oLiteral):          
     target_type=int
-    
+    initiation_prechar = ''              
+    keepEntranceCharacter = True 
+    validContinuationCharacters = setDigits
 class oIntAttr(oInt,oAttr):               # index into list, or dict key (if key is type int) 
     pass
 class oBool(oLiteral):
@@ -42,26 +81,36 @@ class oBool(oLiteral):
 class oIdent(o4StrJoin):                  # {@,#,P,K,M,W} {xat,hashat,property,key(dict),method,callable keyword}
     invalidLowers = {'false':(oBool(),False),'true':(oBool(),True)}
 class oXat(oIdent):                       # {@}
-    pass
+    initiation_prechar = '0'
+    keepEntranceCharacter = False
+    validContinuationCharacters = setDigits
 class oHashat(oIdent):                    # {#}
-    pass
-class oPKMW(oIdent):                      # {P,K,M,W}
-    pass
+    initiation_prechar = ''
+    keepEntranceCharacter = False
+    validContinuationCharacters = setAlphaUSDigit
+class oPKMW(oIdent):                      # {P,K,M,W}: any identifier that starts with a letter or an underscore
+    initiation_prechar = ''
+    keepEntranceCharacter = True
+    validContinuationCharacters = setAlphaUSDigit
 class oKeyword(oPKMW,oNonAttr):           # string representing the keyword for a callable kwarg 
     pass
 class oPKM(oPKMW,oAttr):                  # {P,K,M} {obj property, dict key, method (either instanceM, or staticM from a lib)}
     pass
-class oCallable(oPKM,oAttr):              # {M}: either instance method (df.sort_values()) or static method (pd.concat())
-    pass
 
 class oInternal:                          # object type is internal only (i.e. never visible at mT[-1])
-    pass
-class oList(oInternal):
-    pass
-class oDict(oInternal):
-    pass
-class oCallable(oInternal):
-    pass
+    def obj2postobj(inclass):
+        D_o2po = {oCallable:oPostCallable,oList:oPostList,oDict:oPostDict}
+        # FLAG: could fail if those keys ever become superclasses
+        return(D_o2po[inclass])
+class oList(oInternal,oGrouper):
+    openingChar='['
+    closingChar=']'
+class oDict(oInternal,oGrouper):
+    openingChar='{'
+    closingChar='}'
+class oCallable(oInternal,oGrouper,oPKM,oAttr):  # either instance method (df.sort_values()) or static method (pd.concat())
+    openingChar='('
+    closingChar=')'
     
 class oPre:
     pass
@@ -138,7 +187,7 @@ class Instruction:
             R = container.pop()
             if (isinstance(mT[-1],o4StrJoin)):
                 R=''.join(R)
-                if (isinstance(mT[-1],oIdent) and (R.lower() in mT[-1].invalidLowers)): # hack: detect and typeConvert booleans
+                if (isinstance(mT[-1],oIdent) and (R.lower() in mT[-1].invalidLowers)): # hack: detects and typeConverts booleans
                     (mT[-1],R) = mT[-1].invalidLowers[R.lower()]
                 if (isinstance(mT[-1],oLiteral)):
                     R = mT[-1].converter()(R)
