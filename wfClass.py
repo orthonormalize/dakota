@@ -5,6 +5,7 @@ import sys
 import os
 import io
 import datetime
+from collections import Counter
 
 globs = {k:globals()[k] for k in globals() if not (k.startswith('_'))}
 
@@ -148,7 +149,7 @@ class Instruction:
         self.procname=self.k['procname']
        
     
-    def getObj7(self,s,obj0=None,ifEmpty=None,ignoreLevels=0):
+    def getObj(self,s,obj0=None,ifEmpty=None,ignoreLevels=0):
         # s === string that refers to a chain that can be resolved into objects and/or methods
         # Find and return the corresponding object within the dataStructure.
         # s can be empty. If so, return ifEmpty
@@ -214,12 +215,21 @@ class Instruction:
             mT.append(initiateType())
             container.append([])
                
+        assert ((isinstance(s,str))), 's must be type <str>'
+        if (not(s)):
+            return(ifEmpty)
+        if (ignoreLevels):
+            ccc = Counter(s)
+            numLevels = ccc.get('.',0)
+            assert (numLevels>=ignoreLevels), 'Error: ignoreLevels = %d but input string has %d levels' % (ignoreLevels,numLevels)
+            assert (not(any([ch in (set('()[]{},="'+"'")) for ch in ccc]))), 'specialCharacters only permitted when ignoreLevels=0'
+            s = '.'.join(s.split('.')[:-ignoreLevels])
+        
         mT = [None,oPre()]
         container = [[obj0],[]]
         callableDictStack = []
         
         # temporary testing framework:
-        print()
         mT = self.X['mT']
         container = self.X['container']
         callableDictStack = self.X['callableDictStack']
