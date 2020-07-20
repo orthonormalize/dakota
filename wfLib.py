@@ -10,8 +10,37 @@ import io
 import datetime
 from openpyxl import load_workbook
 
-def readQC(): # placeholder
-    return 73
+def readQC(inputfile,proc,fieldTable,sheetname=None): # placeholder
+    def file2df(inputfile,sheetname=None):
+        assert (inputfile), 'missing input file name'
+        IFS = inputfile.split('.')
+        extension=IFS[-1]
+        if (extension=='csv'):
+            df = pd.read_csv(inputfile)
+        elif (IFS[-1]=='xlsx'):
+            with open(inputfile, "rb") as f:
+                in_mem_file = io.BytesIO(f.read())
+            wb = load_workbook(in_mem_file, read_only=True)
+            shNames = wb.sheetnames
+            if ((sheetname) and (sheetname not in shNames)):
+                raise ValueError('Cannot find sheet name %s in excel file %s' % (sheetname,inputfile))
+            elif (sheetname is None):
+                if (len(shNames)==1):
+                    sheetname = shNames[0]
+                else:
+                    raise ValueError('Excel file %s has %d sheets. Please specify what sheet name to read.' % (inputfile,len(shNames)))
+            data = wb[sheetname].values
+            try:
+                columns = next(data)[0:] # get header line separately
+                df = pd.DataFrame(data, columns=columns)
+            except StopIteration:
+                raise StopIteration('No data in input file %s, sheet %s' % (inputfile,sheetname))
+        else:
+             raise ValueError('Cannot read any input file with extension .%s' % extension)
+        return(df)
+    
+    df = file2df(inputfile,sheetname)
+    return((73,df))
         
 def commandLine2Dict(CL):
     # input: list of command line arguments
