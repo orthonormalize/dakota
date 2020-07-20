@@ -8,6 +8,10 @@ import datetime
 from collections import Counter
 
 globs = {k:globals()[k] for k in globals() if not (k.startswith('_'))}
+import builtins
+builts = {s:getattr(builtins,s) for s in builtins.__dir__()}
+import wfLib as WL
+objs_WL = {k:getattr(WL,k) for k in WL.__dir__() if not (k.startswith('_'))}
 
 
 
@@ -27,7 +31,7 @@ setAlphaUSDigit.update(setDigits)
 class o4StrJoin:                          # item handle needs conversion from charList to str, via (''.join())
                                                 # two options: either (1) LITERAL or (2) IDENTIFIER
     def D_s2o():
-        D = dict([(a,oPKMW) for a in setAlphaUS])
+        D = dict([(a,oPKM) for a in setAlphaUS])          # assume alphaUS_identifier is an Attribute until proven otherwise
         D.update(dict([(a,oInt) for a in setDigits]))
         D.update({'@':oXat,'#':oHashat})
         D.update({k:oGrouper.BG_2_objtype(k) for k in oGrouper.BG}) # FLAG: includes some irrelevant BGs here
@@ -133,9 +137,9 @@ class oPostStr(oPost,oLiteral):           # invoked after endstring character
 
 
 def getter(parent,item):
-    if (isinstance(parent,dict)):
+    if ((isinstance(parent,dict)) and (item in parent)):
         return dict.get(parent,item)
-    elif (isinstance(item,int)):
+    elif (isinstance(item,int)): # list
         return parent[item]
     else:
         return getattr(parent,item)
@@ -148,12 +152,34 @@ class Instruction:
         self.X=self.k['X']
         self.procname=self.k['procname']
        
+    def getObj0(self,obj2find):
+        # obj2find === string, name of desired object
+        # return a dict pointing to the obj2find's parent 
+            # This function can only return 3 possible values: {globs, builts, objs_WL}
+                # Not an instance method. All instance data must reach getObj in one of two ways:
+                    # through X['@'], OR
+                    # through Hashats (e.g. X['data'])
+        for searchSpace in [globs,builts,objs_WL]:
+            if (obj2find in searchSpace):
+                return(searchSpace)
+        # if not yet found, it must be in self.X
+        assert ((obj2find in self.X)), 'Cannot find object: %s' % obj2find
+        return(self.X)
     
     def getObj(self,s,obj0=None,ifEmpty=None,ignoreLevels=0):
         # s === string that refers to a chain that can be resolved into objects and/or methods
         # Find and return the corresponding object within the dataStructure.
         # s can be empty. If so, return ifEmpty
         
+        def retrieveArgumentName_Callable():
+            D = callableDictStack[-1]
+            assert (D['cur'] is not None), 'only keyword args may follow a keyword arg'
+            D['keyList'].append(D['cur'])
+            if (D['kwQ']): # kwarg:
+                D['cur']=None
+            else: # numbered arg:
+                D['cur']+=1
+                
         def executeCallable():
             # input state: (uses vars from scope:getObj7)
                 # callableDictStack[-1] must be dict {kwQ,keyList,cur}. Keywords obtained here. ===> D
@@ -197,18 +223,17 @@ class Instruction:
             container[-1].append(R)
             if (isinstance(mT[-1],oAttr)):
                 attribute = container[-1].pop()
-                baseObj = container[-1].pop()
+                baseObj = ((container[-1].pop()) if (container[-1]) else (None))
+                if (baseObj is None):
+                    baseObj = self.getObj0(attribute)
+                    if (isinstance(mT[-2],oCallable)): 
+                        # ancestor was never written as callableArg, so CDS still needs update!
+                        retrieveArgumentName_Callable()
                 container[-1].append(getter(baseObj,attribute))
             elif (isinstance(mT[-1],oPostCallable)):
                 executeCallable()
             elif (isinstance(mT[-2],oCallable)):
-                D = callableDictStack[-1]
-                assert (D['cur'] is not None), 'only keyword args may follow a keyword arg'
-                D['keyList'].append(D['cur'])
-                if (D['kwQ']): # kwarg:
-                    D['cur']=None
-                else: # numbered arg:
-                    D['cur']+=1
+                retrieveArgumentName_Callable()
             mT.pop()
             
         def stepIn(initiateType):
@@ -224,25 +249,80 @@ class Instruction:
             assert (numLevels>=ignoreLevels), 'Error: ignoreLevels = %d but input string has %d levels' % (ignoreLevels,numLevels)
             assert (not(any([ch in (set('()[]{},="'+"'")) for ch in ccc]))), 'specialCharacters only permitted when ignoreLevels=0'
             s = '.'.join(s.split('.')[:-ignoreLevels])
+            assert (s), 'Bad input string'
+            
+        # 0) initialize:
+        (mT,container,callableDictStack) = ([None],[[obj0]],[])
         
-        mT = [None,oPre()]
-        container = [[obj0],[]]
-        callableDictStack = []
+        # 0T) override initialization for unit Testing:
+        #mT = self.X['mT']
+        #container = self.X['container']
+        #callableDictStack = self.X['callableDictStack']
         
-        # temporary testing framework:
-        mT = self.X['mT']
-        container = self.X['container']
-        callableDictStack = self.X['callableDictStack']
+        stepIn(oPre)
         
+        # 1) process each char:
+        for ch in s:
+            # A)
+            if (isinstance(mT[-1],oStr)):
+                if (ch==mT[-1].closingChar):
+                    mT[-1] = oPostStr()
+                else:
+                    container[-1].append(ch)
+            # B)
+            elif (ch=='.'):
+                resolve()
+                stepIn(oPreAttr)
+            # C)
+            elif (ch==','):
+                resolve()
+                stepIn(oPreNonAttr)
+            # D)
+            elif (ch=='='):
+                keyword=(''.join(container.pop()))
+                container.append([])  # not a stepOut: restart a fresh container to hold the value of this argument
+                assert (isinstance(mT[-1],oPKMW)), 'Attempted to create keyword name %s but it is not an Identifier' % keyword
+                assert (isinstance(mT[-2],oCallable)), 'Attempted keyword assignment %s but target is not a Callable' % keyword
+                callableDictStack[-1].update({'kwQ':True,'cur':keyword}) # stage name of keyword into 'cur'
+                mT[-1] = oPreNonAttr()
+            # E)
+            elif ((ch in oGrouper.EG) and (ch not in oGrouper.BG)):
+                assert (isinstance(mT[-2],oGrouper)), 'End groupers are not valid when mT[-2] is %s' % str(mT[-2]) 
+                assert (ch==mT[-2].closingChar), 'Character "%s" is not a valid closer for %s' % (ch,str(mT[-2]))
+                if (isinstance(mT[-1],oPre)): # don't resolve() if contents are still empty, stepOut via pops alone
+                    mT.pop()
+                    container.pop()
+                else:
+                    resolve()
+                assert (isinstance(mT[-1],oInternal)), 'Object closed by end grouper must be oInternal, not %s' % str(mT[-1])
+                mT[-1] = oInternal.obj2postobj(type(mT[-1]))()
+            # F)
+            elif (isinstance(mT[-1],oPre)):
+                if ((ch in oGrouper.BG) and (ch not in oGrouper.EG)): # Q: better way to reject stringGroupers here?
+                    assert (ch!='('), "Literal Tuples Disabled. Callable must interrupt oIdent, not %s" % str(mT[-1])
+                    mT[-1] = oGrouper.BG_2_objtype(ch)()
+                    stepIn(oPreNonAttr)
+                else:
+                    mT[-1] = o4StrJoin.starter2objtype(ch)()
+                    container[-1].append((ch) if (mT[-1].keepEntranceCharacter) else mT[-1].initiation_prechar)
+            # G)
+            elif (ch in oGrouper.BG): # i.e. '(' entering a callable
+                assert (ch=='('), 'Illegal character "%s" interrupting %s'  %  (ch,str(mT[-1]))
+                resolve()
+                stepIn(oCallable)
+                stepIn(oPreNonAttr)
+                callableDictStack.append({'kwQ':False,'keyList':[],'cur':0})
+            # H)
+            else:
+                assert (ch in mT[-1].validContinuationCharacters), 'Illegal char "%s" in %s' % (ch,str(mT[-1]))
+                container[-1].append(ch)
+            
+            # UT) print state of system at the end of each step
         
-        print('before resolve:')
-        print((mT,[type(x) for x in container[-2]],[type(x) for x in container[-1]],callableDictStack))
+        # Final resolve():
         resolve()
-        print('after resolve:')
-        print((mT,[type(x) for x in container[-2]],[type(x) for x in container[-1]],callableDictStack))
-        print((mT,[type(x) for x in container[-2]],[x for x in container[-1]],callableDictStack))
-        # will process input string char by char here
-        return(container[-1]) # placeholder: eventually need to return the correct object here  
+        
+        return(container[-1][-1]) 
         
     
 class Statement(Instruction):
