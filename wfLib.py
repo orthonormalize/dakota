@@ -37,6 +37,8 @@ def readQC(inputfile,proc,fieldTable,sheetname=None): # placeholder
                 raise StopIteration('No data in input file %s, sheet %s' % (inputfile,sheetname))
         else:
              raise ValueError('Cannot read input file with extension .%s' % extension)
+        df.fillna('', inplace=True)
+        df.replace(to_replace='',value=np.nan,inplace=True)   # empty cells were {NaN,None,''} ==> Now all empty cells contain NaN
         return(df)
     
     df = file2df(inputfile,sheetname)
@@ -87,7 +89,8 @@ def readAllSheets(xlFile):
             columns = next(data)[0:] # get header line separately
             D[sh] = pd.DataFrame(data, columns=columns)
             D[sh] = D[sh][[c for c in columns if c]]  # rm extra columns (caused by sheets with cell colors / old edits ???)
-            D[sh] = D[sh].applymap(lambda x: ('' if (x==None) else str(x)))  # converts all data to str. Revisit?
+            D[sh] = D[sh].applymap(lambda x: ('' if (x==None) else str(x)))  # converts ALL data to str. Empty cells are ''
+            D[sh] = D[sh].applymap(lambda x: x.strip()) 
         except StopIteration:
             # ignore empty sheets
             pass
