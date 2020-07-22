@@ -50,9 +50,17 @@ def readQC(inputfile,proc,fieldTable,sheetname=None): # placeholder
             assert (all(~df[f0].isna())), 'Input file contains at least one missing data value in required field %s' % f0
         return(df)
     
-    df = file2df(inputfile,sheetname)
-    df = rowFiltering(df,proc,fieldTable)
-    return(df)
+    def constructDF(df0,proc,fieldTable):
+        FT_direct = fieldTable.loc[(fieldTable.PROC==proc) & (fieldTable.Field0.apply(lambda x: len(x)>0))]
+        FT_full = fieldTable.loc[(fieldTable.PROC==proc)]
+        myField_2_rawField = {FT_direct.Property[row]:FT_direct.Field0[row] for row in FT_direct.index}
+        df1 = pd.DataFrame({f:df0[myField_2_rawField[f]] for f in FT_direct.Property},columns=list(FT_full.Property))
+        return(df1)
+    
+    df0 = file2df(inputfile,sheetname)
+    df0 = rowFiltering(df0,proc,fieldTable)
+    df1 = constructDF(df0,proc,fieldTable)
+    return(df1)
         
 def commandLine2Dict(CL):
     # input: list of command line arguments
