@@ -28,7 +28,7 @@ def readQC(inputfile,proc,fieldTable,sheetname=None): # placeholder
                 if (len(shNames)==1):
                     sheetname = shNames[0]
                 else:
-                    raise ValueError('Excel file %s has %d sheets. Please specify what sheet name to read.' % (inputfile,len(shNames)))
+                    raise ValueError('Excel file %s has %d sheets. Please specify sheet name to read.' % (inputfile,len(shNames)))
             data = wb[sheetname].values
             try:
                 columns = next(data)[0:] # get header line separately
@@ -36,7 +36,7 @@ def readQC(inputfile,proc,fieldTable,sheetname=None): # placeholder
             except StopIteration:
                 raise StopIteration('No data in input file %s, sheet %s' % (inputfile,sheetname))
         else:
-             raise ValueError('Cannot read any input file with extension .%s' % extension)
+             raise ValueError('Cannot read input file with extension .%s' % extension)
         return(df)
     
     df = file2df(inputfile,sheetname)
