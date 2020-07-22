@@ -41,8 +41,18 @@ def readQC(inputfile,proc,fieldTable,sheetname=None): # placeholder
         df.replace(to_replace='',value=np.nan,inplace=True)   # empty cells were {NaN,None,''} ==> Now all empty cells contain NaN
         return(df)
     
+    def rowFiltering(df,proc,fieldTable):
+        FT = fieldTable.loc[(fieldTable.PROC==proc) & (fieldTable.Field0.apply(lambda x: len(x)>0))]
+        assert all(FT.ifEmpty.isin(['error','filter','ok','okay'])), 'fields: Invalid entry for "ifEmpty", proc %s' % proc
+        for f0 in FT.Field0[FT.ifEmpty.isin(['filter'])]:   # 1) apply all row filters
+            df = df.loc[(~df[f0].isna())]   
+        for f0 in FT.Field0[FT.ifEmpty.isin(['error'])]:    # 2) assert that all mandatory fields are occupied
+            assert (all(~df[f0].isna())), 'Input file contains at least one missing data value in required field %s' % f0
+        return(df)
+    
     df = file2df(inputfile,sheetname)
-    return((73,df))
+    df = rowFiltering(df,proc,fieldTable)
+    return(df)
         
 def commandLine2Dict(CL):
     # input: list of command line arguments
