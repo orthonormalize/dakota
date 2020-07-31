@@ -3,14 +3,31 @@
 
 import numpy as np
 import pandas as pd
-#import re
+import re
 import sys
 import os
 import io
 import datetime
 from openpyxl import load_workbook
 
+empties = {'str':'','int':0,'bool':False,'date':np.datetime64('1900-02-28'),'float':np.nan}
+typeFunctions = {'str':str,'int':int,'bool':bool,'float':float}
+def convertTypePS(ps0,targetString,dateformatStr='%Y/%m/%d'):
+    # input: pandas series that might contain NaN values. Replace these so all types match target
+    # targetStr must be in {'str','int','float','bool','date'}
+    # dateformatStr is only used for dates
+    if (targetString=='date'):
+        fun = lambda x: np.datetime64(datetime.datetime.strptime(x,dateformatStr))
+    else:
+        fun = typeFunctions[targetString]
+    ps = ps0.copy()
+    nullers = ps.isna()
+    ps.loc[nullers] = empties[targetString]
+    ps.loc[~nullers] = ps.loc[~nullers].apply(lambda x: fun(x))
+    return(ps)
+
 def readQC(inputfile,proc,fieldTable,sheetname=None): # placeholder
+    
     def file2df(inputfile,sheetname=None):
         assert (inputfile), 'missing input file name'
         IFS = inputfile.split('.')
@@ -28,7 +45,7 @@ def readQC(inputfile,proc,fieldTable,sheetname=None): # placeholder
                 if (len(shNames)==1):
                     sheetname = shNames[0]
                 else:
-                    raise ValueError('Excel file %s has %d sheets. Please specify sheet name to read.' % (inputfile,len(shNames)))
+                    raise ValueError('Excel file %s has %d sheets. Please specify sheet to read.' % (inputfile,len(shNames)))
             data = wb[sheetname].values
             try:
                 columns = next(data)[0:] # get header line separately
@@ -38,12 +55,12 @@ def readQC(inputfile,proc,fieldTable,sheetname=None): # placeholder
         else:
              raise ValueError('Cannot read input file with extension .%s' % extension)
         df.fillna('', inplace=True)
-        df.replace(to_replace='',value=np.nan,inplace=True)   # empty cells were {NaN,None,''} ==> Now all empty cells contain NaN
+        df.replace(to_replace='',value=np.nan,inplace=True)
         return(df)
     
     def rowFiltering(df,proc,fieldTable):
         FT = fieldTable.loc[(fieldTable.PROC==proc) & (fieldTable.Field0.apply(lambda x: len(x)>0))]
-        assert all(FT.ifEmpty.isin(['error','filter','ok','okay'])), 'fields: Invalid entry for "ifEmpty", proc %s' % proc
+        assert all(FT.ifEmpty.isin(['error','filter','ok','okay',''])), 'fields: Invalid entry for "ifEmpty", proc %s' % proc
         for f0 in FT.Field0[FT.ifEmpty.isin(['filter'])]:   # 1) apply all row filters
             df = df.loc[(~df[f0].isna())]   
         for f0 in FT.Field0[FT.ifEmpty.isin(['error'])]:    # 2) assert that all mandatory fields are occupied
@@ -57,9 +74,29 @@ def readQC(inputfile,proc,fieldTable,sheetname=None): # placeholder
         df1 = pd.DataFrame({f:df0[myField_2_rawField[f]] for f in FT_direct.Property},columns=list(FT_full.Property))
         return(df1)
     
+    def convert_dtypes(df1,proc,fieldTable):
+        FT_direct = fieldTable.loc[(fieldTable.PROC==proc) & (fieldTable.Field0.apply(lambda x: len(x)>0))]
+        FT_full = fieldTable.loc[(fieldTable.PROC==proc)]
+        for row in FT_full.index:
+            column = FT_full.loc[row,'Property']
+            field0 = FT_full.loc[row,'Field0']
+            usSplit = re.split('_',FT_full.loc[row,'type'])
+            targetString = usSplit[0]
+            dateformatString = None
+            for s in usSplit[1:]:
+                if s.startswith('i='):
+                    dateformatString = s[2:]
+            if (field0):
+                df1[column] = convertTypePS(df1[column],targetString,dateformatStr=dateformatString)
+            else:
+                df1[column] = convertTypePS(
+                    pd.Series([empties[targetString]]*len(df1),index=df1.index),targetString,dateformatStr=dateformatString)
+        return(df1)
+    
     df0 = file2df(inputfile,sheetname)
     df0 = rowFiltering(df0,proc,fieldTable)
     df1 = constructDF(df0,proc,fieldTable)
+    df1 = convert_dtypes(df1,proc,fieldTable)
     return(df1)
         
 def commandLine2Dict(CL):
