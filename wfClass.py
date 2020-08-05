@@ -220,6 +220,8 @@ class Instruction:
                     R = mT[-1].converter()(R)
                 elif (isinstance(mT[-1],oXat)):
                     R = (self.X['@'][int(R)])
+                elif (isinstance(mT[-1],oHashat)):
+                    R = self.executeHashat(R,self.X['@'][0])
             container[-1].append(R)
             if (isinstance(mT[-1],oAttr)):
                 attribute = container[-1].pop()
