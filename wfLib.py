@@ -59,27 +59,27 @@ def readQC(inputfile,proc,fieldTable,sheetname=None): # placeholder
         return(df)
     
     def rowFiltering(df,proc,fieldTable):
-        FT = fieldTable.loc[(fieldTable.PROC==proc) & (fieldTable.Field0.apply(lambda x: len(x)>0))]
+        FT = fieldTable.loc[(fieldTable.proc==proc) & (fieldTable.field0.apply(lambda x: len(x)>0))]
         assert all(FT.ifEmpty.isin(['error','filter','ok','okay',''])), 'fields: Invalid entry for "ifEmpty", proc %s' % proc
-        for f0 in FT.Field0[FT.ifEmpty.isin(['filter'])]:   # 1) apply all row filters
+        for f0 in FT.field0[FT.ifEmpty.isin(['filter'])]:   # 1) apply all row filters
             df = df.loc[(~df[f0].isna())]   
-        for f0 in FT.Field0[FT.ifEmpty.isin(['error'])]:    # 2) assert that all mandatory fields are occupied
+        for f0 in FT.field0[FT.ifEmpty.isin(['error'])]:    # 2) assert that all mandatory fields are occupied
             assert (all(~df[f0].isna())), 'Input file contains at least one missing data value in required field %s' % f0
         return(df)
     
     def constructDF(df0,proc,fieldTable):
-        FT_direct = fieldTable.loc[(fieldTable.PROC==proc) & (fieldTable.Field0.apply(lambda x: len(x)>0))]
-        FT_full = fieldTable.loc[(fieldTable.PROC==proc)]
-        myField_2_rawField = {FT_direct.Property[row]:FT_direct.Field0[row] for row in FT_direct.index}
-        df1 = pd.DataFrame({f:df0[myField_2_rawField[f]] for f in FT_direct.Property},columns=list(FT_full.Property))
+        FT_direct = fieldTable.loc[(fieldTable.proc==proc) & (fieldTable.field0.apply(lambda x: len(x)>0))]
+        FT_full = fieldTable.loc[(fieldTable.proc==proc)]
+        myField_2_rawField = {FT_direct.property[row]:FT_direct.field0[row] for row in FT_direct.index}
+        df1 = pd.DataFrame({f:df0[myField_2_rawField[f]] for f in FT_direct.property},columns=list(FT_full.property))
         return(df1)
     
     def convert_dtypes(df1,proc,fieldTable):
-        FT_direct = fieldTable.loc[(fieldTable.PROC==proc) & (fieldTable.Field0.apply(lambda x: len(x)>0))]
-        FT_full = fieldTable.loc[(fieldTable.PROC==proc)]
+        FT_direct = fieldTable.loc[(fieldTable.proc==proc) & (fieldTable.field0.apply(lambda x: len(x)>0))]
+        FT_full = fieldTable.loc[(fieldTable.proc==proc)]
         for row in FT_full.index:
-            column = FT_full.loc[row,'Property']
-            field0 = FT_full.loc[row,'Field0']
+            column = FT_full.loc[row,'property']
+            field0 = FT_full.loc[row,'field0']
             usSplit = re.split('_',FT_full.loc[row,'type'])
             targetString = usSplit[0]
             dateformatString = None
