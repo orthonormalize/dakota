@@ -189,16 +189,18 @@ class Instruction:
     def getObj0(self,obj2find):
         # obj2find === string, name of desired object
         # return a dict pointing to the obj2find's parent 
-            # This function can only return 3 possible values: {globs, builts, objs_WL}
+            # Search priority: {X, globs, builts, objs_WL, self.__dir__()}
+            # This function can only return 1 of 5 dicts: {X, globs, builts, objs_WL, instanceAttrs}
                 # Not an instance method. All instance data must reach getObj in one of two ways:
                     # through X['@'], OR
                     # through Hashats (e.g. X['data'])
-        for searchSpace in [globs,builts,objs_WL]:
+        for searchSpace in [self.X,globs,builts,objs_WL]:
             if (obj2find in searchSpace):
                 return(searchSpace)
-        # if not yet found, it must be in self.X
-        assert ((obj2find in self.X)), 'Cannot find object: %s' % obj2find
-        return(self.X)
+        # if not yet found, it had better be in self.__dir__() (e.g. it's a direct call of an Instruction instance method)
+        instanceAttrs = {k:getattr(self,k) for k in self.__dir__() if not (k.startswith('_'))}
+        assert (obj2find in instanceAttrs), 'Cannot find object: %s' % obj2find
+        return(instanceAttrs)
     
     def getObj(self,s,obj0=None,ifEmpty=None,ignoreLevels=0):
         # s === string that refers to a chain that can be resolved into objects and/or methods
