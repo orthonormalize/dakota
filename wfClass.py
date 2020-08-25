@@ -223,7 +223,7 @@ class Instruction:
             # output state:
                 # callableDictStack has popped off one used item
                 # container[-1]: two items popped off (objFUNK, argList); then one item pushed (output from method call)
-                
+            # This function DOES NOT change len(container), DOES NOT modify mT at all
             D = callableDictStack.pop()
             argList = container[-1].pop()
             objFUNK = container[-1].pop()
@@ -248,14 +248,14 @@ class Instruction:
             R = container.pop()
             if (isinstance(mT[-1],o4StrJoin)):
                 R=''.join(R)
-                if (isinstance(mT[-1],oIdent) and (R.lower() in mT[-1].invalidLowers)): # hack: detects and typeConverts booleans
+                if (isinstance(mT[-1],oIdent) and (R.lower() in mT[-1].invalidLowers)): # hack: detects/typeConverts booleans
                     (mT[-1],R) = mT[-1].invalidLowers[R.lower()]
                 if (isinstance(mT[-1],oLiteral)):
                     R = mT[-1].converter()(R)
                 elif (isinstance(mT[-1],oXat)):
                     R = (self.X['@'][int(R)])
                 elif (isinstance(mT[-1],oHashat)):
-                    R = self.executeHashat(R,self.X['@'][0])
+                    R = self.executeHashat(R)
             container[-1].append(R)
             if (isinstance(mT[-1],oAttr)):
                 attribute = container[-1].pop()
@@ -282,19 +282,18 @@ class Instruction:
         if (ignoreLevels):
             ccc = Counter(s)
             numLevels = ccc.get('.',0)
+            if (numLevels==(ignoreLevels-1)):
+                if (obj0 is None):
+                    return(self.getObj0(s.split('.')[0]))  # possible cryptic error/non-error if s is malformed
+                else:
+                    return(obj0)
             assert (numLevels>=ignoreLevels), 'Error: ignoreLevels = %d but input string has %d levels' % (ignoreLevels,numLevels)
             assert (not(any([ch in (set('()[]{},="'+"'")) for ch in ccc]))), 'specialCharacters only permitted when ignoreLevels=0'
             s = '.'.join(s.split('.')[:-ignoreLevels])
             assert (s), 'Bad input string'
             
         # 0) initialize:
-        (mT,container,callableDictStack) = ([None],[[obj0]],[])
-        
-        # 0T) override initialization for unit Testing:
-        #mT = self.X['mT']
-        #container = self.X['container']
-        #callableDictStack = self.X['callableDictStack']
-        
+        (mT,container,callableDictStack) = ([None],[[obj0]],[])      
         stepIn(oPre)
         
         # 1) process each char:
@@ -353,11 +352,8 @@ class Instruction:
                 assert (ch in mT[-1].validContinuationCharacters), 'Illegal char "%s" in %s' % (ch,str(mT[-1]))
                 container[-1].append(ch)
             
-            # UT) print state of system at the end of each step
-        
         # Final resolve():
         resolve()
-        
         return(container[-1][-1]) 
         
     
