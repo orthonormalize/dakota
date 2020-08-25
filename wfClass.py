@@ -15,7 +15,11 @@ objs_WL = {k:getattr(WL,k) for k in WL.__dir__() if not (k.startswith('_'))}
 
 
 
-# Constants:
+# Define Constants:
+FT_splitch = '_'
+defaultDateFormat = '%Y/%m/%d'
+empties = {'str':'','int':0,'bool':False,'date':np.datetime64('1970-01-01'),'float':np.nan}
+typeFunctions = {'str':str,'int':int,'bool':bool,'float':float,'date':np.datetime64}
 setDigits = set([chr(j) for j in range(48,58)])
 setAlpha = set([chr(j) for j in range(65,91)] + [chr(j) for j in range(97,123)])
 setAlphaUS = setAlpha.copy()
@@ -23,6 +27,36 @@ setAlphaUS.update('_')
 setAlphaUSDigit = setAlphaUS.copy()
 setAlphaUSDigit.update(setDigits)
 
+
+# Type Converters:
+def is_date(x):
+    return (isinstance(x,np.datetime64) or (isinstance(x,datetime.date)) or isinstance(
+                                            x,pd._libs.tslibs.timestamps.Timestamp))
+
+def forceType(x,targetString,dateformatStr=defaultDateFormat):
+    # x === scalar object. type of x must be in {int, float, bool, str, or date}
+    # targetString must be in var typeFunctions
+    x = (np.nan if (x=='') else x)
+    if (pd.isna(x)):
+        return(empties[targetString])
+    if (targetString=='date'):
+        if (isinstance(x,str)):
+            return(np.datetime64(datetime.datetime.strptime(x,dateformatStr)))
+        assert is_date(x), 'Cannot convert %s %s to date' % (str(type(x)),str(x))
+        return(np.datetime64(x))
+    elif (is_date(x) and (targetString=='str')):
+        x=pd.to_datetime(x).strftime(dateformatStr)
+    elif (isinstance(x,str)):
+        x=x.strip()
+        x = (False if (x.lower()=='false') else (True if (x.lower()=='true') else x))
+    if (targetString!='str'):
+        x=float(x)
+    if (targetString in ['int','bool']):
+        x=round(x)
+    return(typeFunctions[targetString](x))
+
+def convertTypePS(ps0,targetString,dateformatStr=defaultDateFormat):
+    return ps0.apply(lambda x: forceType(x,targetString,dateformatStr)).astype(typeFunctions[targetString])
 
 
 # Define lots of object types, with inheritances
