@@ -186,6 +186,37 @@ class Instruction:
         self.X=self.k['X']
         self.procname=self.k['procname']
        
+    def prop2typeparse(self,nameof_targetDF,propName,splitchar=FT_splitch):
+        F=self.X['fields']
+        rowMatched = F.loc[(F['proc']==self.procname) & (F['object']==nameof_targetDF) & (F['property']==propName)]
+        assert (len(rowMatched)==1), '"Fields" has %d matches for (proc,obj,prop) = (%s,%s,%s)' % (
+                                                                    len(rowMatched),self.procname,nameof_targetDF,propName)
+        row = next(rowMatched.itertuples())
+        sType = row.type
+        L = re.split(re.escape(splitchar),sType)
+        return(L)
+    
+    def prop2typestr(self,nameof_targetDF,propName,splitchar=FT_splitch):
+        L = self.prop2typeparse(nameof_targetDF,propName,splitchar=FT_splitch)
+        return(L[0])
+    
+    def prop2typeconverter(self,nameof_targetDF,propName,mode_ico='c',splitchar=FT_splitch):
+        # propName: official name of pd Series object, from X['fields'].property
+        # mode_ico: one of {'i','c','o'}, for {'input','computations','output'}.
+            # Allows objects to be represented in different formats for I/O than they are in internal operations 'C'
+        # Date Formats are the only special formats fully customizable yet by this function (2020 August)
+        # OUTPUT: lambda function, taking pd Series arg, that applies the correct type conversion to the arg
+        L = self.prop2typeparse(nameof_targetDF,propName,splitchar=FT_splitch)
+        targetString = L[0]
+        dateformatString = None
+        for s in L[1:]:
+            assert (s[0] in 'ico')
+            assert (s[1] == '=')
+            if s.startswith(mode_ico):
+                dateformatString = s[2:]
+        if ((targetString=='date') and (dateformatString is None)):
+            dateformatString = defaultDateFormat
+        return (lambda pandasSeries: convertTypePS(pandasSeries,targetString,dateformatStr=dateformatString))
     def getObj0(self,obj2find):
         # obj2find === string, name of desired object
         # return a dict pointing to the obj2find's parent 
