@@ -577,24 +577,25 @@ class Statement(Instruction):
         DiagnosisDictionary = {'task':self.TASK,'obj':self.X['#']}
         pickle.dump(DiagnosisDictionary,open("outputCheck_"+("%.6f"%time.perf_counter())+".p", "wb" ) )
         
-        parent = self.getObj(self.SET,obj0=self.X,ignoreLevels=1)
-        namesPA = self.SET.split('.')
-        (parentName,attrName) = ('.'.join(namesPA[:-1]),namesPA[-1])
-        attrName = self.SET.split('.')[-1]
-        if (isinstance(parent,pd.DataFrame) and isinstance(self.X['#'],pd.Series)):
-            XFP = self.X['fields'][self.X['fields'].proc=='B1']
-            if ((parentName in XFP.object.unique()) and (attrName in XFP[XFP.object==parentName].property.values)):
-                # parent has a data type schema defined that we must honor:
-                self.X['#'] = self.prop2typeconverter(parentName,attrName,mode_ico='c')(self.X['#'])
-            self.X['#'].rename(attrName,inplace=True)
-            if (self.X['#'].name in parent.columns):
-                parent.update(self.X['#'])
+        if (self.SET):
+            parent = self.getObj(self.SET,obj0=self.X,ignoreLevels=1)
+            namesPA = self.SET.split('.')
+            (parentName,attrName) = ('.'.join(namesPA[:-1]),namesPA[-1])
+            attrName = self.SET.split('.')[-1]
+            if (isinstance(parent,pd.DataFrame) and isinstance(self.X['#'],pd.Series)):
+                XFP = self.X['fields'][self.X['fields'].proc=='B1']
+                if ((parentName in XFP.object.unique()) and (attrName in XFP[XFP.object==parentName].property.values)):
+                    # parent has a data type schema defined that we must honor:
+                    self.X['#'] = self.prop2typeconverter(parentName,attrName,mode_ico='c')(self.X['#'])
+                self.X['#'].rename(attrName,inplace=True)
+                if (self.X['#'].name in parent.columns):
+                    parent.update(self.X['#'])
+                else:
+                    assert self.X['#'].index.equals(parent.index), 'assignment failed: series and DF indices do not match'
+                    parent[self.X['#'].name] = self.X['#']
             else:
-                assert self.X['#'].index.equals(parent.index), 'assignment failed: series and DF indices do not match'
-                parent[self.X['#'].name] = self.X['#']
-        else:
-            _ = ((setattr(parent,attrName,self.X['#'])) if (hasattr(parent,'__getattr__'))
-                                                               else (parent.__setitem__(attrName,self.X['#'])))
+                _ = ((setattr(parent,attrName,self.X['#'])) if (hasattr(parent,'__getattr__'))
+                                                                   else (parent.__setitem__(attrName,self.X['#'])))
         print('placeholder: done executing ' + self.TASK)
     
 class Loop(Instruction):
