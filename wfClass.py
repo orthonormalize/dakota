@@ -1,11 +1,15 @@
 import numpy as np
 import pandas as pd
-#import re
+import re
 import sys
 import os
 import io
 import datetime
 from collections import Counter
+from openpyxl import load_workbook
+import pickle
+import time
+
 
 globs = {k:globals()[k] for k in globals() if not (k.startswith('_'))}
 import builtins
@@ -126,7 +130,7 @@ class oXat(oIdent):                       # {@}
 class oHashat(oIdent):                    # {#}
     initiation_prechar = ''
     keepEntranceCharacter = False
-    validContinuationCharacters = setAlphaUSDigit
+    validContinuationCharacters = (setAlphaUSDigit | {':'})
 class oPKMW(oIdent):                      # {P,K,M,W}: any identifier that starts with a letter or an underscore
     initiation_prechar = ''
     keepEntranceCharacter = True
