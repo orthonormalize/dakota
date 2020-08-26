@@ -478,6 +478,87 @@ class Statement(Instruction):
         df1 = convert_dtypes(df1,proc,nameof_targetDF,fieldTable)
         return(df1)
         
+    def executeHashat(self,tablename_seq):
+        # always operate on X['@'][0], which is assumed to be a pd DataFrame
+        # tablename should also be found as a key of X
+            # Table needs fields: [PROC,SEQ,FILTER_PROPERTY,FILTER_TYPE,FILTER_VALUE,TARGET_PROPERTY,TARGET_VALUE]
+        # if there is a ':' within tablename_seq:   use seq to further select subset of rows from computes
+        df = self.X['@'][0]
+        assert (isinstance(df,pd.DataFrame)), 'Argument passed to Hashat function must be a pandas DataFrame'
+        TS = tablename_seq.split(':')
+        assert (len(TS) <= 2), 'Illegal Hashat construction: too many colons'
+        (tablename,seq) = ((TS[0],int(TS[1])) if (len(TS)==2) else (TS[0],None))
+        assert (tablename in self.X), 'Hashat function name not found'
+        table = self.X[tablename]
+        # adjust table:   str replacements in col FILTER_TYPE:
+        table.FILTER_TYPE = table.FILTER_TYPE.replace({'contains':'str.contains'})
+        (pat,repl) = (r"^(([lg][et])|(eq)|(ne))$", lambda m: '__'+m.group(0)+'__')  # comparison operators
+        table.FILTER_TYPE = table.FILTER_TYPE.str.replace(pat,repl)
+        print(list(table.FILTER_TYPE))
+        
+        # Process df:
+        # 1) downselect rows in df via self.procname and seq
+        tableKeeps = (table.PROC==self.procname)
+        if (seq is not None):
+            tableKeeps = (tableKeeps & (table.SEQ.astype(int) == seq))
+        print('keeping table rows:')
+        print(tableKeeps)
+        hashat = table[tableKeeps]
+        
+        # 2) Form joined table:
+        fieldsInfo = self.X['fields'][self.X['fields']['proc']==self.procname]
+        hashat_J = (
+            hashat.reset_index()
+                .merge(fieldsInfo.add_suffix('_fil'), how="left",
+                           left_on='FILTER_PROPERTY',right_on='property_fil',validate="m:1")
+                .merge(fieldsInfo.add_suffix('_tar'), how="left",
+                           left_on='TARGET_PROPERTY',right_on='property_tar',validate="m:1")
+                .set_index('index')
+        )  
+        print('hashat_J:')
+        print(hashat_J)
+        
+        # 3) Process Hashat, row by row:
+        print(len(df))
+        for row in hashat_J.itertuples():
+            self.X['@'] = [df]
+            print()
+            print('%02d' % row.Index)
+            print(row)
+            # 2A) Compute df rowmask:
+            if (not(row.FILTER_PROPERTY)): # no filter ==> calculate all rows
+                print('FP WAS EMPTY')
+                rowmask = pd.Series(True,index=df.index)
+            else:
+                (fP0,fT0,fV0) = (row.FILTER_PROPERTY,row.FILTER_TYPE,row.FILTER_VALUE)
+                filter_is_string = (self.prop2typestr(row.object_fil,fP0)=='str')
+                fV1 = self.prop2typeconverter(row.object_fil,fP0,mode_ico='c')(pd.Series([fV0])).iloc[0]
+                fV1 = ((fV1.lower()) if filter_is_string else fV1)
+                maskSTRING = "@." + fP0 + (".str.lower()." if (filter_is_string) else ".") + fT0 + "('" + fV1 + "')"
+                rowmask = self.getObj(maskSTRING)
+            # 2B) Calculate df column:
+            self.X['@'] = [df.loc[rowmask]]
+            print((np.count_nonzero(rowmask),len(rowmask)))
+            if (np.count_nonzero(rowmask)==1642):
+                print([kk for kk in rowmask.index if not(rowmask[kk])])
+            if(any(fieldsInfo.property==row.TARGET_PROPERTY)):
+                print((type(row.TARGET_CALCULATION),row.TARGET_CALCULATION))
+                temp_ps0 = pd.Series(self.getObj(row.TARGET_CALCULATION),index=df[rowmask].index)
+                temp_ps1 = self.prop2typeconverter(row.object_tar,row.TARGET_PROPERTY,mode_ico='c')(temp_ps0)
+                df.loc[rowmask,row.TARGET_PROPERTY] = temp_ps1
+            else: # non-calculation. must be either "remove" or "error"
+                if (row.TARGET_PROPERTY=="remove"):
+                    print('removing %d rows' % np.count_nonzero(rowmask))
+                    df = df.loc[~rowmask]
+                else:
+                    assert (row.TARGET_PROPERTY=="error"), "Invalid value for hashat:TARGET_PROPERTY: %s" % s
+                    assert (not(any(rowmask))), 'Hashat error caught at least one row of df'
+            pickle.dump(rowmask, open("hashat_rowmask_" + ('%02d'%row.Index) + ".p", "wb" ) )
+            pickle.dump(df, open("hashat_df_" + ('%02d'%row.Index) + ".p", "wb" ) )
+            print(len(df))
+        print()
+        return(df)
+    
     def execute(self):
         print()
         print()
