@@ -396,36 +396,39 @@ class Statement(Instruction):
         self.TASK = self.k['TFT'].TASK
         self.GET = self.k['TFT'].GET
         self.SET = self.k['TFT'].SET
-    
-    def parseExpr(self,attr,temp=[]): # temp===workspace of objects currently being processed (i.e. variable '@' in excel file)
-        s = getattr(self,attr)
-        if (not(s)):
-            return([])
-        elif (attr in ['GET','SET']):
-            # ########## assert ((attr!='SET') or (len(s)==1)), 'Only one object value can be set per row of excel file'
-            E = [e.split('.')[::-1] for e in s.split(',') if e]
-            out=[]
-            for (i,variable) in enumerate(E):
-                obj=self.X
-                e1 = variable.pop()
-                while variable:  # i.e.: while there exist further levels of variable name
-                    obj = ((getattr(obj,e1)) if (hasattr(obj,'__getattr__')) else (obj.get(e1)))
-                    e1 = variable.pop()
-                if (attr=='GET'):
-                    assert e1 in obj, "Cannot find var or field: %s" % e1
-                    obj = ((getattr(obj,e1)) if (hasattr(obj,'__getattr__')) else (obj.get(e1)))
-                    out.append(obj)
-                else: # (attr=='SET')
-                    obj = ((setattr(obj,e1,temp[i])) if (hasattr(obj,'__getattr__')) else (obj.__setitem__(e1,temp[i])))
-            return (out or None)
-        else: # (attr=='TASK')
-            return(s) # placeholder
         
     def execute(self):
+        print()
+        print()
         print('placeholder: begin executing ' + self.TASK)
-        self.X['@'] = self.parseExpr('GET')
-        self.X['@'] = self.parseExpr('TASK',self.X['@'])
-        self.parseExpr('SET',self.X['@'])
+        self.X['@'] = [self.getObj(ss,obj0=self.X) for ss in self.GET.split(',')]
+        print('finished Statement.GET.    Here is @:')
+        print(self.X['@'])
+        self.X['#'] = self.getObj(self.TASK)
+        print('finished Statement.TASK.    Here is the result:')
+        print(self.X['#'])
+        
+        DiagnosisDictionary = {'task':self.TASK,'obj':self.X['#']}
+        pickle.dump(DiagnosisDictionary,open("outputCheck_"+("%.6f"%time.perf_counter())+".p", "wb" ) )
+        
+        parent = self.getObj(self.SET,obj0=self.X,ignoreLevels=1)
+        namesPA = self.SET.split('.')
+        (parentName,attrName) = ('.'.join(namesPA[:-1]),namesPA[-1])
+        attrName = self.SET.split('.')[-1]
+        if (isinstance(parent,pd.DataFrame) and isinstance(self.X['#'],pd.Series)):
+            XFP = self.X['fields'][self.X['fields'].proc=='B1']
+            if ((parentName in XFP.object.unique()) and (attrName in XFP[XFP.object==parentName].property.values)):
+                # parent has a data type schema defined that we must honor:
+                self.X['#'] = self.prop2typeconverter(parentName,attrName,mode_ico='c')(self.X['#'])
+            self.X['#'].rename(attrName,inplace=True)
+            if (self.X['#'].name in parent.columns):
+                parent.update(self.X['#'])
+            else:
+                assert self.X['#'].index.equals(parent.index), 'assignment failed: series and DF indices do not match'
+                parent[self.X['#'].name] = self.X['#']
+        else:
+            _ = ((setattr(parent,attrName,self.X['#'])) if (hasattr(parent,'__getattr__'))
+                                                               else (parent.__setitem__(attrName,self.X['#'])))
         print('placeholder: done executing ' + self.TASK)
     
 class Loop(Instruction):
