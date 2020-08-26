@@ -397,6 +397,87 @@ class Statement(Instruction):
         self.GET = self.k['TFT'].GET
         self.SET = self.k['TFT'].SET
         
+    def readQC(self,inputfile,nameof_targetDF=None,sheetname=None):
+        # inputfile: str: name of CSV or XLSX file to read
+        # nameof_targetDF:  str: name (within X) of DataFrame object where result will be stored
+            # this will determine what row subset from X['fields'] gets used
+            # if omitted, use the variable name from the procedure SET expr
+        # sheetname: str: if inputfile is XLSX, may need to specify sheetname if file contains more than one sheet
+        
+        def file2df(inputfile,sheetname=None):
+            assert (inputfile), 'missing input file name'
+            IFS = inputfile.split('.')
+            extension=IFS[-1]
+            if (extension=='csv'):
+                df = pd.read_csv(inputfile)
+            elif (IFS[-1]=='xlsx'):
+                with open(inputfile, "rb") as f:
+                    in_mem_file = io.BytesIO(f.read())
+                wb = load_workbook(in_mem_file, read_only=True)
+                shNames = wb.sheetnames
+                if ((sheetname) and (sheetname not in shNames)):
+                    raise ValueError('Cannot find sheet name %s in excel file %s' % (sheetname,inputfile))
+                elif (sheetname is None):
+                    if (len(shNames)==1):
+                        sheetname = shNames[0]
+                    else:
+                        raise ValueError('Excel file %s has %d sheets. Specify sheet to read.' % (inputfile,len(shNames)))
+                data = wb[sheetname].values
+                try:
+                    columns = next(data)[0:] # get header line separately
+                    df = pd.DataFrame(data, columns=columns)
+                except StopIteration:
+                    raise StopIteration('No data in input file %s, sheet %s' % (inputfile,sheetname))
+            else:
+                 raise ValueError('Cannot read input file with extension .%s' % extension)
+            df.fillna('', inplace=True)
+            df.replace(to_replace='',value=np.nan,inplace=True)   # all empty cells are np.nan after this step
+            return(df)
+
+        def rowFiltering(df,proc,nameof_targetDF,fieldTable):
+            FT = fieldTable.loc[(fieldTable.proc==proc) & (fieldTable.object==nameof_targetDF) &
+                                  (fieldTable.field0.apply(lambda x: len(x)>0))]
+            assert all(FT.ifEmpty.isin(['error','filter','ok','okay'])),'fields: Invalid entry: "ifEmpty": proc %s, obj %s' % (
+                                                                                                proc,nameof_targetDF)
+            for f0 in FT.field0[FT.ifEmpty.isin(['filter'])]:   # 1) apply all row filters
+                df = df.loc[(~df[f0].isna())]   
+            for f0 in FT.field0[FT.ifEmpty.isin(['error'])]:    # 2) assert that all mandatory fields are occupied
+                assert (all(~df[f0].isna())), 'Input file contains at least one missing data value in required field %s' % f0
+            return(df)
+
+        def constructDF(df0,proc,nameof_targetDF,fieldTable):
+            FT_direct = fieldTable.loc[(fieldTable.proc==proc) & (fieldTable.object==nameof_targetDF) & (
+                                       fieldTable.field0.apply(lambda x: len(x)>0))]
+            FT_full = fieldTable.loc[(fieldTable.proc==proc) & (fieldTable.object==nameof_targetDF)]
+            myField_2_rawField = {FT_direct.property[row]:FT_direct.field0[row] for row in FT_direct.index}
+            df1 = pd.DataFrame({f:df0[myField_2_rawField[f]] for f in FT_direct.property},columns=list(FT_full.property))
+            return(df1)
+
+        def convert_dtypes(df1,proc,nameof_targetDF,fieldTable):
+            FT_direct = fieldTable.loc[(fieldTable.proc==proc) & (fieldTable.object==nameof_targetDF) & (
+                                       fieldTable.field0.apply(lambda x: len(x)>0))]
+            FT_full = fieldTable.loc[(fieldTable.proc==proc) & (fieldTable.object==nameof_targetDF)]
+            for row in FT_full.index:
+                column = FT_full.loc[row,'property']
+                field0 = FT_full.loc[row,'field0']
+                if (field0):
+                    df1[column] = self.prop2typeconverter(nameof_targetDF,column,mode_ico='i')(df1[column])
+                else:
+                    df1[column] = self.prop2typeconverter(nameof_targetDF,column,mode_ico='i')(
+                        pd.Series([empties[self.prop2typestr(nameof_targetDF,column)]]*len(df1),
+                                  index=df1.index))
+            return(df1)
+
+        if (nameof_targetDF is None):
+            nameof_targetDF = self.SET
+        proc=self.procname
+        fieldTable = self.X['fields'][self.X['fields']['proc']==self.procname]
+        df0 = file2df(inputfile,sheetname)
+        df0 = rowFiltering(df0,proc,nameof_targetDF,fieldTable)
+        df1 = constructDF(df0,proc,nameof_targetDF,fieldTable)
+        df1 = convert_dtypes(df1,proc,nameof_targetDF,fieldTable)
+        return(df1)
+        
     def execute(self):
         print()
         print()
