@@ -30,6 +30,7 @@ setAlphaUS = setAlpha.copy()
 setAlphaUS.update('_')
 setAlphaUSDigit = setAlphaUS.copy()
 setAlphaUSDigit.update(setDigits)
+loopKeywords = ['for'] # not yet configured to handle any other loop constructs
 
 
 # Type Converters:
@@ -647,16 +648,22 @@ class Statement(Instruction):
 class Loop(Instruction):
     def __init__(self,*args,**kwargs):
         super().__init__(*args,**kwargs)
-        self.controlString=self.k['controlString']
         self.body = InstructionList(self.X,self.procname,self.k['body'])
-        
-    def parseExpr(self,attr):
-        s = getattr(self,attr)
-        print('placeholder: loop parse %s' % s)
-        return(s)
+        self.controlString=self.k['controlString']
+        conList = self.controlString.split(' ')
+        assert (len(conList)==4), 'Bad control string: "%s". Control string must contain exactly four words'
+        (self.keyword, self.loopvar, mustbe_in, self.iterable) = conList
+        self.iterable = ((self.iterable[:-1]) if (self.iterable.endswith(':')) else (self.iterable))
+        assert ((self.keyword=='for') and (mustbe_in=='in')), 'Bad control string %s. ' + \
+                                    'Required format: "(keyword) (loopvar) (in) (iterable)"'
         
     def execute(self):
-        print('placeholder loop exec ' + self.controlString)
+        myIterable = self.getObj(self.iterable)
+        assert (hasattr(myIterable,'__iter__')), 'Loop iterable "%s" is not iterable'
+        for iiiii in myIterable:
+            print('Loop execution: %s=%s' % (self.loopvar,str(iiiii)))
+            X[self.loopvar] = iiiii
+            self.body.execute()
       
     
 class InstructionList:
