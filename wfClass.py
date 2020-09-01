@@ -582,9 +582,10 @@ class Statement(Instruction):
                 (fP0,fT0,fV0) = (row.FILTER_PROPERTY,row.FILTER_TYPE,row.FILTER_VALUE)
                 filter_is_string = (self.prop2typestr(row.object_fil,fP0)=='str')
                 fV1 = self.prop2typeconverter(row.object_fil,fP0,mode_ico='c')(pd.Series([fV0])).iloc[0]
-                fV1 = ((fV1.lower()) if filter_is_string else fV1)
-                maskSTRING = "@." + fP0 + (".str.lower()." if (filter_is_string) else ".") + fT0 + "('" + fV1 + "')"
-                rowmask = self.getObj(maskSTRING)
+                if (filter_is_string):
+                    rowmask = getter(getter(df,fP0).str.lower(), fT0)(fV1.lower())  # case-insensitivity is hardWired
+                else:
+                    rowmask = getter(getter(df,fP0),fT0)(fV1)
             # 2B) Calculate df column:
             self.X['@'] = [df.loc[rowmask]]
             print((np.count_nonzero(rowmask),len(rowmask)))
@@ -600,7 +601,7 @@ class Statement(Instruction):
                     print('removing %d rows' % np.count_nonzero(rowmask))
                     df = df.loc[~rowmask]
                 else:
-                    assert (row.TARGET_PROPERTY=="error"), "Invalid value for hashat:TARGET_PROPERTY: %s" % s
+                    assert (row.TARGET_PROPERTY=="error"), "Invalid value for hashat:TARGET_PROPERTY: %s"%row.TARGET_PROPERTY
                     assert (not(any(rowmask))), 'Hashat error caught at least one row of df'
             pickle.dump(rowmask, open("hashat_rowmask_" + ('%02d'%row.Index) + ".p", "wb" ) )
             pickle.dump(df, open("hashat_df_" + ('%02d'%row.Index) + ".p", "wb" ) )
@@ -628,7 +629,7 @@ class Statement(Instruction):
             (parentName,attrName) = ('.'.join(namesPA[:-1]),namesPA[-1])
             attrName = self.SET.split('.')[-1]
             if (isinstance(parent,pd.DataFrame) and isinstance(self.X['#'],pd.Series)):
-                XFP = self.X['fields'][self.X['fields'].proc=='B1']
+                XFP = self.X['fields'][self.X['fields'].proc==self.procname]
                 if ((parentName in XFP.object.unique()) and (attrName in XFP[XFP.object==parentName].property.values)):
                     # parent has a data type schema defined that we must honor:
                     self.X['#'] = self.prop2typeconverter(parentName,attrName,mode_ico='c')(self.X['#'])
