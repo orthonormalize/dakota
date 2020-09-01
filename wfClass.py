@@ -213,6 +213,7 @@ class Instruction:
         # propName: official name of pd Series object, from X['fields'].property
         # mode_ico: one of {'i','c','o'}, for {'input','computations','output'}.
             # Allows objects to be represented in different formats for I/O than they are in internal operations 'C'
+            # mode 'O' will force conversion of date objects to strings before outputting
         # Date Formats are the only special formats fully customizable yet by this function (2020 August)
         # OUTPUT: lambda function, taking pd Series arg, that applies the correct type conversion to the arg
         L = self.prop2typeparse(nameof_targetDF,propName,splitchar=FT_splitch)
@@ -223,9 +224,13 @@ class Instruction:
             assert (s[1] == '=')
             if s.startswith(mode_ico):
                 dateformatString = s[2:]
-        if ((targetString=='date') and (dateformatString is None)):
-            dateformatString = defaultDateFormat
+        if (targetString=='date'):
+            if (dateformatString is None):
+                dateformatString = defaultDateFormat
+            if (mode_ico=='o'):
+                targetString='str' # if output mode, override 'date' and force 'str'. it will be converted with strftime
         return (lambda pandasSeries: convertTypePS(pandasSeries,targetString,dateformatStr=dateformatString))
+    
     def getObj0(self,obj2find):
         # obj2find === string, name of desired object
         # return a dict pointing to the obj2find's parent 
