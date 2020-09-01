@@ -4,12 +4,13 @@
 import sys
 import wfLib as WL
 import wfClass as WC
-import zTestHarness as Z
+#import zTestHarness as Z
 
 lookup_file = 'sleekmap.txt'
 
 
 if __name__ == '__main__':
+    # 0) Preliminary Data Ingestion, from lookup_file and command line:
     with open('sleekmap.txt','r') as f:
         mapfile = f.read().strip()
     CL = WL.commandLine2Dict(sys.argv)   # sys.argv collects all input args as strings
@@ -18,7 +19,7 @@ if __name__ == '__main__':
     assert (('proc'+proc) in M), "Procedure %s not found." % proc
     print('Executing Procedure %s' % proc)
     
-    # transform input data to representation X
+    # 1) Transform data to X representation:
     X = dict.fromkeys(['data','procs','params','computes','fields'])
     X['procs'] = WL.nestSheets(M,'proc') # as dataframes
     X['procedure'] = {}
@@ -28,5 +29,7 @@ if __name__ == '__main__':
     X['params'] = WL.makeParams(M)
     (X['computes'],X['fields']) = (M['computes'],M['fields'])
     
-    Z.executeTestHarness(X)
-    print('Done')
+    # 2) Execute:
+    #Z.executeTestHarness(X)
+    X['procedure'][proc].execute()
+    print('Completed Execution of Procedure %s' % proc)
