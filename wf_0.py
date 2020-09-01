@@ -6,10 +6,12 @@ import wfLib as WL
 import wfClass as WC
 import zTestHarness as Z
 
-mapfile = r'C:\Users\rek\Desktop\lightwave\sleekdata\maps v801.xlsx'
+lookup_file = 'sleekmap.txt'
 
 
 if __name__ == '__main__':
+    with open('sleekmap.txt','r') as f:
+        mapfile = f.read().strip()
     CL = WL.commandLine2Dict(sys.argv)   # sys.argv collects all input args as strings
     proc = CL.get('proc',CL.get('p','B1'))    # default procedure is B1
     M = WL.readAllSheets(mapfile)
@@ -18,7 +20,10 @@ if __name__ == '__main__':
     
     # transform input data to representation X
     X = dict.fromkeys(['data','procs','params','computes','fields'])
-    X['procs'] = WL.nestSheets(M,'proc')
+    X['procs'] = WL.nestSheets(M,'proc') # as dataframes
+    X['procedure'] = {}
+    for procname in X['procs']:
+        X['procedure'][procname] = WC.Procedure(X,procname)
     X['data'] = WL.makeDatadicts(M,startswith='data')
     X['params'] = WL.makeParams(M)
     (X['computes'],X['fields']) = (M['computes'],M['fields'])
