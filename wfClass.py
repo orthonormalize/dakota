@@ -662,7 +662,7 @@ class Loop(Instruction):
         assert (hasattr(myIterable,'__iter__')), 'Loop iterable "%s" is not iterable'
         for iiiii in myIterable:
             print('Loop execution: %s=%s' % (self.loopvar,str(iiiii)))
-            X[self.loopvar] = iiiii
+            self.X[self.loopvar] = iiiii
             self.body.execute()
       
     
