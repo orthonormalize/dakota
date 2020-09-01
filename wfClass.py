@@ -419,7 +419,7 @@ class Statement(Instruction):
         # inputfile: str: name of CSV or XLSX file to read
         # nameof_targetDF:  str: name (within X) of DataFrame object where result will be stored
             # this will determine what row subset from X['fields'] gets used
-            # if omitted, use the variable name from the procedure SET expr
+            # if omitted, use the variable name string from self.SET
         # sheetname: str: if inputfile is XLSX, may need to specify sheetname if file contains more than one sheet
         
         def file2df(inputfile,sheetname=None):
@@ -495,7 +495,38 @@ class Statement(Instruction):
         df1 = constructDF(df0,proc,nameof_targetDF,fieldTable)
         df1 = convert_dtypes(df1,proc,nameof_targetDF,fieldTable)
         return(df1)
-        
+
+    def write_csv(self,df_in,outfilename,**kwargs):
+        # wrapper for pd.to_csv
+        # purpose: 1) downselect columns for output, according to X.fields
+                #  2) standardize all data formats (e.g. date display format)
+        # if nameofDF not given, pull the correct string directly from first varname in self.GET
+    
+        # 1) Find matching proc and object:
+        nameofDF = ((kwargs.pop('nameofDF')) if ('nameofDF' in kwargs) else (None))
+        assert (df_in is self.X['@'][0]), 'First argument to write_csv() must be GET[0]'
+        fieldsP = self.X['fields'][self.X['fields']['proc']==self.procname]
+        uObj = fieldsP.object.unique()
+        if (nameofDF is None):
+            candidate = self.GET.split(',')[0]
+            nameofDF = (candidate if (candidate in uObj) else None)
+        if (nameofDF is None):
+            # Allow a match if there is a fields template with identical columns, albeit under a different name:
+            for candidate in uObj:
+                if (set(fieldsP[fieldsP.object==candidate].property.unique()) == set(df_in.columns)):
+                    nameofDF = candidate
+                    break
+        assert (nameofDF is not None), 'Cannot find a Fields template for dataframe %s' % (self.GET.split(',')[0])
+        assert (set(fieldsP[fieldsP.object==nameofDF].property.unique()) == set(df_in.columns)), (
+                            'write_csv: failed to match columns for %s and %s' % (nameofDF, self.GET.split(',')[0]))
+        fieldsPO = fieldsP[fieldsP.object==nameofDF]
+        # 2) Discards and reFormats to match template output style:
+        df_out = df_in.copy()
+        df_out = df_out[list(fieldsPO.property.loc[~fieldsPO.discard.isin(set(['1',1,True]))])] # discards and sorts
+        for col in df_out.columns:
+            df_out.loc[:,col] = self.prop2typeconverter(nameofDF,col,mode_ico='o')(df_out[col])
+        df_out.to_csv(outfilename,**kwargs)
+
     def executeHashat(self,tablename_seq):
         # always operate on X['@'][0], which is assumed to be a pd DataFrame
         # tablename should also be found as a key of X
