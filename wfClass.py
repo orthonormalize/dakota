@@ -39,7 +39,7 @@ def is_date(x):
 
 def forceType(x,targetString,dateformatStr=defaultDateFormat):
     # x === scalar object. type of x must be in {int, float, bool, str, or date}
-    # targetString must be in var typeFunctions
+    # targetString must be in dict typeFunctions
     x = (np.nan if (x=='') else x)
     if (pd.isna(x)):
         return(empties[targetString])
@@ -194,7 +194,7 @@ class Instruction:
         self.k=kwargs
         self.X=self.k['X']
         self.procname=self.k['procname']
-       
+
     def prop2typeparse(self,nameof_targetDF,propName,splitchar=FT_splitch):
         F=self.X['fields']
         rowMatched = F.loc[(F['proc']==self.procname) & (F['object']==nameof_targetDF) & (F['property']==propName)]
@@ -329,13 +329,15 @@ class Instruction:
                     return(self.getObj0(s.split('.')[0]))  # possible cryptic error/non-error if s is malformed
                 else:
                     return(obj0)
-            assert (numLevels>=ignoreLevels), 'Error: ignoreLevels = %d but input string has %d levels' % (ignoreLevels,numLevels)
-            assert (not(any([ch in (set('()[]{},="'+"'")) for ch in ccc]))), 'specialCharacters only permitted when ignoreLevels=0'
+            assert (numLevels>=ignoreLevels), \
+                                'Error: ignoreLevels=%d but input string has %d levels' % (ignoreLevels,numLevels)
+            assert (not(any([ch in (set('()[]{},="'+"'")) for ch in ccc]))), \
+                                'specChars only permitted when ignoreLevels=0'
             s = '.'.join(s.split('.')[:-ignoreLevels])
-            assert (s), 'Bad input string'
+            assert (s), 'Bad input string'  # possible cryptic error/non-error if s is malformed (e.g. if s=='..')
             
         # 0) initialize:
-        (mT,container,callableDictStack) = ([None],[[obj0]],[])      
+        (mT,container,callableDictStack) = ([None],[[obj0]],[])
         stepIn(oPre)
         
         # 1) process each char:
@@ -380,7 +382,9 @@ class Instruction:
                     mT[-1] = oGrouper.BG_2_objtype(ch)()
                     stepIn(oPreNonAttr)
                 else:
-                    mT[-1] = o4StrJoin.starter2objtype(ch)()
+                    new_mT_candidate = o4StrJoin.starter2objtype(ch)()
+                    wasPreAttr_and_isInt = ((isinstance(mT[-1],oPreAttr)) and (isinstance(new_mT_candidate,oInt))) # eg 'L.0'
+                    mT[-1] = ((oIntAttr()) if (wasPreAttr_and_isInt) else (new_mT_candidate))
                     container[-1].append((ch) if (mT[-1].keepEntranceCharacter) else mT[-1].initiation_prechar)
             # G)
             elif (ch in oGrouper.BG): # i.e. '(' entering a callable
@@ -396,7 +400,7 @@ class Instruction:
             
         # Final resolve():
         resolve()
-        return(container[-1][-1]) 
+        return(container[-1][-1])
         
     
 class Statement(Instruction):
