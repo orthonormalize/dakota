@@ -177,10 +177,15 @@ class oPostStr(oPost,oLiteral):           # invoked after endstring character
 def getter(parent,item):
     if ((isinstance(parent,dict)) and (item in parent)):
         return dict.get(parent,item)
-    elif (isinstance(item,int)): # list
+    elif (isinstance(item,int)):
         return parent[item]
-    else:
+    elif (hasattr(parent,item)):
         return getattr(parent,item)
+    else:  # hack!    for: executeHashat() where fT0 = 'str.contains' from pandas
+        assert ((isinstance(item,str)) and ('.' in item)), 'cannot find item %s(%s) in parent %s' % \
+                                                                (item.__class__,item,parent)
+        chain=item.split('.')
+        return(getter(getter(parent,chain[0]),'.'.join(chain[1:])))
     
 
 class Instruction:
