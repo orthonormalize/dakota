@@ -4,6 +4,8 @@
 import sys
 import wfLib as WL
 import wfClass as WC
+import pickle
+import pandas as pd
 #import zTestHarness as Z
 
 lookup_file = 'sleekmap.txt'

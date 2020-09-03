@@ -10,7 +10,9 @@ import io
 import datetime
 from openpyxl import load_workbook
 
-        
+def timeString():
+    return (datetime.datetime.now().strftime('-%Y%m%d-%H%M%S-%f'))
+    
 def commandLine2Dict(CL):
     # input: list of command line arguments
         # m: mapfile
@@ -108,4 +110,9 @@ def makeDatadicts(M,startswith='data'):
     return D
 
 def makeParams(M,sheetname='params'):
-    return (M.get(sheetname).set_index('Parameter',drop=True)['Value'].to_dict())
+    tempParams =  (M.get(sheetname).set_index('Parameter',drop=True)['Value'].to_dict())
+    integerParams = ['verbosity','picklosity','ccThresh']
+    for ip in integerParams:
+        tempParams[ip] = int(tempParams.get(ip,0))
+    return(tempParams)
+

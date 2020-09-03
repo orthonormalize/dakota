@@ -232,6 +232,10 @@ class Instruction:
                 targetString='str' # if output mode, override 'date' and force 'str'. it will be converted with strftime
         return (lambda pandasSeries: convertTypePS(pandasSeries,targetString,dateformatStr=dateformatString))
     
+    def pickleDump(self,priority,obj0,filebase):
+        if (priority<=self.X['params']['picklosity']):
+            pickle.dump(obj0, open(filebase + WL.timeString() + ".p", "wb" ) )
+            
     def getObj0(self,obj2find):
         # obj2find === string, name of desired object
         # return a dict pointing to the obj2find's parent 
@@ -604,8 +608,8 @@ class Statement(Instruction):
                 else:
                     assert (row.TARGET_PROPERTY=="error"), "Invalid value for hashat:TARGET_PROPERTY: %s"%row.TARGET_PROPERTY
                     assert (not(any(rowmask))), 'Hashat error caught at least one row of df'
-            pickle.dump(rowmask, open("hashat_rowmask_" + ('%02d'%row.Index) + ".p", "wb" ) )
-            pickle.dump(df, open("hashat_df_" + ('%02d'%row.Index) + ".p", "wb" ) )
+            self.pickleDump(2,rowmask,"hashat_rowmask_" + ('%02d'%row.Index))
+            self.pickleDump(2,df,"hashat_df_" + ('%02d'%row.Index))
             print(len(df))
         print()
         return(df)
@@ -622,7 +626,7 @@ class Statement(Instruction):
         print(self.X['#'])
         
         DiagnosisDictionary = {'task':self.TASK,'obj':self.X['#']}
-        pickle.dump(DiagnosisDictionary,open("outputCheck_"+("%.6f"%time.perf_counter())+".p", "wb" ) )
+        self.pickleDump(1,DiagnosisDictionary,"outputCheck")
         
         if (self.SET):
             parent = self.getObj(self.SET,obj0=self.X,ignoreLevels=1)
