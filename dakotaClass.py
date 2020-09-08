@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import re
 import sys
-import os
+#import osFIX
 import io
 import datetime
 from collections import Counter
@@ -14,8 +14,8 @@ import time
 globs = {k:globals()[k] for k in globals() if not (k.startswith('_'))}
 import builtins
 builts = {s:getattr(builtins,s) for s in builtins.__dir__()}
-import wfLib as WL
-objs_WL = {k:getattr(WL,k) for k in WL.__dir__() if not (k.startswith('_'))}
+import dakotaLib as DL
+objs_DL = {k:getattr(DL,k) for k in DL.__dir__() if not (k.startswith('_'))}
 
 
 
@@ -234,17 +234,17 @@ class Instruction:
     
     def pickleDump(self,priority,obj0,filebase):
         if (priority<=self.X['params']['picklosity']):
-            pickle.dump(obj0, open(filebase + WL.timeString() + ".p", "wb" ) )
+            pickle.dump(obj0, open(filebase + DL.timeString() + ".p", "wb" ) )
             
     def getObj0(self,obj2find):
         # obj2find === string, name of desired object
         # return a dict pointing to the obj2find's parent 
-            # Search priority: {X, globs, builts, objs_WL, self.__dir__()}
-            # This function can only return 1 of 5 dicts: {X, globs, builts, objs_WL, instanceAttrs}
+            # Search priority: {X, globs, builts, objs_DL, self.__dir__()}
+            # This function can only return 1 of 5 dicts: {X, globs, builts, objs_DL, instanceAttrs}
                 # Not an instance method. All instance data must reach getObj in one of two ways:
                     # through X['@'], OR
                     # through Hashats (e.g. X['data'])
-        for searchSpace in [self.X,globs,builts,objs_WL]:
+        for searchSpace in [self.X,globs,builts,objs_DL]:
             if (obj2find in searchSpace):
                 return(searchSpace)
         # if not yet found, it had better be in self.__dir__() (e.g. it's a direct call of an Instruction instance method)

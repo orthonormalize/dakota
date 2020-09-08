@@ -2,8 +2,8 @@
 # gamma main
 
 import sys
-import wfLib as WL
-import wfClass as WC
+import dakotaLib as DL
+import dakotaClass as DC
 import pickle
 import pandas as pd
 #import zTestHarness as Z
@@ -15,20 +15,20 @@ if __name__ == '__main__':
     # 0) Preliminary Data Ingestion, from lookup_file and command line:
     with open('sleekmap.txt','r') as f:
         mapfile = f.read().strip()
-    CL = WL.commandLine2Dict(sys.argv)   # sys.argv collects all input args as strings
+    CL = DL.commandLine2Dict(sys.argv)   # sys.argv collects all input args as strings
     proc = CL.get('proc',CL.get('p','B1'))    # default procedure is B1
-    M = WL.readAllSheets(mapfile)
+    M = DL.readAllSheets(mapfile)
     assert (('proc'+proc) in M), "Procedure %s not found." % proc
     print('Executing Procedure %s' % proc)
     
     # 1) Transform data to X representation:
     X = dict.fromkeys(['data','procs','params','computes','fields'])
-    X['procs'] = WL.nestSheets(M,'proc') # as dataframes
+    X['procs'] = DL.nestSheets(M,'proc') # as dataframes
     X['procedure'] = {}
     for procname in X['procs']:
-        X['procedure'][procname] = WC.Procedure(X,procname)
-    X['data'] = WL.makeDatadicts(M,startswith='data')
-    X['params'] = WL.makeParams(M)
+        X['procedure'][procname] = DC.Procedure(X,procname)
+    X['data'] = DL.makeDatadicts(M,startswith='data')
+    X['params'] = DL.makeParams(M)
     (X['computes'],X['fields']) = (M['computes'],M['fields'])
     
     # 2) Execute:
