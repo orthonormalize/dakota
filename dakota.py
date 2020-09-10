@@ -8,7 +8,7 @@ import pickle
 import pandas as pd
 #import zTestHarness as Z
 
-lookup_file = 'sleekmap.txt'
+lookup_file = 'map_dakota.txt'
 
 
 if __name__ == '__main__':
