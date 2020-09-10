@@ -1,14 +1,12 @@
 import numpy as np
 import pandas as pd
 import re
-import sys
-#import osFIX
+import os
 import io
 import datetime
 from collections import Counter
 from openpyxl import load_workbook
-import pickle
-import time
+import json
 
 
 globs = {k:globals()[k] for k in globals() if not (k.startswith('_'))}
@@ -232,9 +230,31 @@ class Instruction:
                 targetString='str' # if output mode, override 'date' and force 'str'. it will be converted with strftime
         return (lambda pandasSeries: convertTypePS(pandasSeries,targetString,dateformatStr=dateformatString))
     
-    def pickleDump(self,priority,obj0,filebase):
+    def jsonDump(self,priority,obj0,filebase,includeTimeString=True):
         if (priority<=self.X['params']['picklosity']):
-            pickle.dump(obj0, open(filebase + DL.timeString() + ".p", "wb" ) )
+            if (isinstance(obj0,dict) and ('obj' in obj0) and ('task' in obj0) and \
+                                    (isinstance(obj0['obj'],pd.Series) or isinstance(obj0['obj'],pd.DataFrame))):
+                try:
+                    DLTS = DL.timeString(includeTimeString)
+                    with open(filebase + DLTS + "_0task.json", "w" ) as outfile:
+                        json.dump(obj0['task'],outfile)
+                    with open(filebase + DLTS + "_1obj.json", "w" ) as outfile:
+                        obj0['obj'].to_json(outfile)
+                except:
+                    pass
+            else:
+                if (isinstance(obj0,pd.Series) or isinstance(obj0,pd.DataFrame)):
+                    try:
+                        with open(filebase+DL.timeString(includeTimeString)+".json","w") as outfile: 
+                            obj0.to_json(outfile)  # pd Series or DataFrame
+                    except:
+                        pass
+                else:    
+                    try:
+                        with open(filebase + DL.timeString(includeTimeString) + ".json", "w" ) as outfile:
+                            json.dump(obj0,outfile)
+                    except:
+                        pass
             
     def getObj0(self,obj2find):
         # obj2find === string, name of desired object
@@ -608,8 +628,8 @@ class Statement(Instruction):
                 else:
                     assert (row.TARGET_PROPERTY=="error"), "Invalid value for hashat:TARGET_PROPERTY: %s"%row.TARGET_PROPERTY
                     assert (not(any(rowmask))), 'Hashat error caught at least one row of df'
-            self.pickleDump(2,rowmask,"hashat_rowmask_" + ('%02d'%row.Index))
-            self.pickleDump(2,df,"hashat_df_" + ('%02d'%row.Index))
+            self.jsonDump(3,rowmask,"dakson_hashat_rowmask_" + ('%02d'%row.Index))
+            self.jsonDump(3,df,"dakson_hashat_df_" + ('%02d'%row.Index))
             print(len(df))
         print()
         return(df)
@@ -626,7 +646,7 @@ class Statement(Instruction):
         print(self.X['#'])
         
         DiagnosisDictionary = {'task':self.TASK,'obj':self.X['#']}
-        self.pickleDump(1,DiagnosisDictionary,"outputCheck")
+        self.jsonDump(2,DiagnosisDictionary,"dakson_s_")
         
         if (self.SET):
             parent = self.getObj(self.SET,obj0=self.X,ignoreLevels=1)

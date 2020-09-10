@@ -1,17 +1,15 @@
-# 20200601:
-# gamma main
+# dakota: support library
 
-import numpy as np
 import pandas as pd
-import re
-import sys
-#import osFIX
 import io
 import datetime
 from openpyxl import load_workbook
 
-def timeString():
-    return (datetime.datetime.now().strftime('-%Y%m%d-%H%M%S-%f'))
+def timeString(includeTimeString=True):
+    if includeTimeString:
+        return (datetime.datetime.now().strftime('-%Y%m%d-%H%M%S-%f'))
+    else:
+        return('')
     
 def commandLine2Dict(CL):
     # input: list of command line arguments
