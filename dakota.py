@@ -13,7 +13,7 @@ lookup_file = 'map_dakota.txt'
 
 if __name__ == '__main__':
     # 0) Preliminary Data Ingestion, from lookup_file and command line:
-    with open('sleekmap.txt','r') as f:
+    with open(lookup_file,'r') as f:
         mapfile = f.read().strip()
     CL = DL.commandLine2Dict(sys.argv)   # sys.argv collects all input args as strings
     proc = CL.get('proc',CL.get('p','B1'))    # default procedure is B1
