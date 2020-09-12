@@ -29,7 +29,7 @@ setAlphaUS.update('_')
 setAlphaUSDigit = setAlphaUS.copy()
 setAlphaUSDigit.update(setDigits)
 loopKeywords = ['for'] # not yet configured to handle any other loop constructs
-
+identifierMapper = {'if':'iff'}
 
 # Type Converters:
 def is_date(x):
@@ -174,6 +174,9 @@ class oPostStr(oPost,oLiteral):           # invoked after endstring character
 
 
 def getter(parent,item):
+    item = identifierMapper.get(item,item)
+        # ALSO CHECK blacklist funcs
+    
     if ((isinstance(parent,dict)) and (item in parent)):
         return dict.get(parent,item)
     elif (isinstance(item,int)):
@@ -264,6 +267,7 @@ class Instruction:
                 # Not an instance method. All instance data must reach getObj in one of two ways:
                     # through X['@'], OR
                     # through Hashats (e.g. X['data'])
+        obj2find = identifierMapper.get(obj2find,obj2find)
         for searchSpace in [self.X,globs,builts,objs_DL]:
             if (obj2find in searchSpace):
                 return(searchSpace)
@@ -331,6 +335,7 @@ class Instruction:
             container[-1].append(R)
             if (isinstance(mT[-1],oAttr)):
                 attribute = container[-1].pop()
+                attribute = identifierMapper.get(attribute,attribute)
                 baseObj = ((container[-1].pop()) if (container[-1]) else (None))
                 if (baseObj is None):
                     baseObj = self.getObj0(attribute)
