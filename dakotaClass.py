@@ -119,9 +119,11 @@ class oIntAttr(oInt,oAttr):               # index into list, or dict key (if key
     pass
 class oBool(oLiteral):
     target_type=bool
+class oNone(oLiteral):
+    target_type=lambda x,y=None: None     # why on earth does this one require two args to work ??????
 
 class oIdent(o4StrJoin):                  # {@,#,P,K,M,W} {xat,hashat,property,key(dict),method,callable keyword}
-    invalidLowers = {'false':(oBool(),False),'true':(oBool(),True)}
+    invalidLowers = {'false':(oBool(),False),'true':(oBool(),True),'none':(oNone(),None)}
 class oXat(oIdent):                       # {@}
     initiation_prechar = '0'
     keepEntranceCharacter = False
