@@ -459,8 +459,9 @@ class Statement(Instruction):
             IFS = inputfile.split('.')
             extension=IFS[-1]
             if (extension=='csv'):
-                df = pd.read_csv(inputfile,**kwargs)
-            elif (IFS[-1]=='xlsx'):
+                dtype=(kwargs.pop('dtype') if ('dtype' in kwargs) else str)
+                df = pd.read_csv(inputfile, dtype=dtype, **kwargs)
+            elif (extension=='xlsx'):
                 with open(inputfile, "rb") as f:
                     in_mem_file = io.BytesIO(f.read())
                 wb = load_workbook(in_mem_file, read_only=True, **kwargs)
@@ -479,7 +480,7 @@ class Statement(Instruction):
                 except StopIteration:
                     raise StopIteration('No data in input file %s, sheet %s' % (inputfile,sheetname))
             else:
-                 raise ValueError('Cannot read input file with extension .%s' % extension)
+                 raise ValueError('Cannot readQC input file with extension .%s' % extension)
             df.fillna('', inplace=True)
             df.replace(to_replace='',value=np.nan,inplace=True)   # all empty cells are np.nan after this step
             return(df)
