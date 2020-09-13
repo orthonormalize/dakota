@@ -633,8 +633,8 @@ class Statement(Instruction):
                 else:
                     assert (row.TARGET_PROPERTY=="error"), "Invalid value for hashat:TARGET_PROPERTY: %s"%row.TARGET_PROPERTY
                     assert (not(any(rowmask))), 'Hashat error caught at least one row of df'
-            self.jsonDump(3,rowmask,"dakson_hashat_rowmask_" + ('%02d'%row.Index))
-            self.jsonDump(3,df,"dakson_hashat_df_" + ('%02d'%row.Index))
+            self.jsonDump(3,rowmask,"__dakson_hashat_rowmask_" + ('%02d'%row.Index))
+            self.jsonDump(3,df,"__dakson_hashat_df_" + ('%02d'%row.Index))
             print(len(df))
         print()
         return(df)
@@ -651,7 +651,7 @@ class Statement(Instruction):
         print(self.X['#'])
         
         DiagnosisDictionary = {'task':self.TASK,'obj':self.X['#']}
-        self.jsonDump(2,DiagnosisDictionary,"dakson_s_")
+        self.jsonDump(2,DiagnosisDictionary,"__dakson_s_")
         
         if (self.SET):
             parent = self.getObj(self.SET,obj0=self.X,ignoreLevels=1)
