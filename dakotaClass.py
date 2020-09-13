@@ -445,7 +445,7 @@ class Statement(Instruction):
         self.GET = self.k['TFT'].GET
         self.SET = self.k['TFT'].SET
         
-    def readQC(self,inputfile,nameof_targetDF=None,sheetname=None):
+    def readQC(self,inputfile,nameof_targetDF=None,sheetname=None,**kwargs):
         # inputfile: str: name of CSV or XLSX file to read
         # nameof_targetDF:  str: name (within X) of DataFrame object where result will be stored
             # this will determine what row subset from X['fields'] gets used
@@ -457,11 +457,11 @@ class Statement(Instruction):
             IFS = inputfile.split('.')
             extension=IFS[-1]
             if (extension=='csv'):
-                df = pd.read_csv(inputfile)
+                df = pd.read_csv(inputfile,**kwargs)
             elif (IFS[-1]=='xlsx'):
                 with open(inputfile, "rb") as f:
                     in_mem_file = io.BytesIO(f.read())
-                wb = load_workbook(in_mem_file, read_only=True)
+                wb = load_workbook(in_mem_file, read_only=True, **kwargs)
                 shNames = wb.sheetnames
                 if ((sheetname) and (sheetname not in shNames)):
                     raise ValueError('Cannot find sheet name %s in excel file %s' % (sheetname,inputfile))
