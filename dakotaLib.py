@@ -5,6 +5,8 @@ import io
 import datetime
 from openpyxl import load_workbook
 
+loweralphanum = lambda x: ''.join(ch for ch in x.lower() if ch.isalnum())
+
 def timeString(includeTimeString=True):
     if includeTimeString:
         return (datetime.datetime.now().strftime('-%Y%m%d-%H%M%S-%f'))
@@ -113,4 +115,5 @@ def makeParams(M,sheetname='params'):
     for ip in integerParams:
         tempParams[ip] = int(tempParams.get(ip,0))
     return(tempParams)
+
 

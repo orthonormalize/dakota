@@ -31,6 +31,8 @@ setAlphaUSDigit.update(setDigits)
 loopKeywords = ['for'] # not yet configured to handle any other loop constructs
 identifierMapper = {'if':'iff'}
 
+loweralphanum = lambda x: ''.join(ch for ch in x.lower() if ch.isalnum())
+
 # Type Converters:
 def is_date(x):
     return (isinstance(x,np.datetime64) or (isinstance(x,datetime.date)) or isinstance(
