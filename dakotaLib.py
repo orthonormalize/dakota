@@ -117,3 +117,57 @@ def makeParams(M,sheetname='params'):
     return(tempParams)
 
 
+
+# define substring search methods (for mapping vendor names to vendor basestrings)
+ 
+def buildDict_StarterSubstrings(L):
+    # input must be list-like and already sorted
+    # output: dict of possible extensions 
+        # key: a word in L
+        # value: list of all other words in L that are starter substrings of the key
+    L=list(L)
+    D={}
+    cur=[]
+    dex=0
+    while (dex<len(L)):
+        thisword = L[dex]
+        while (cur):
+            if(not(thisword.startswith(cur[-1]))):
+                cur.pop()
+            else:
+                D[thisword]=[x for x in cur]
+                break
+        cur.append(L[dex])
+        dex+=1
+    return D
+
+def binSearch(s,L,substringDict=None):
+    # inputs: s=string to search for
+            # L must be list-like and already sorted ascending
+    # output: longest element of L that is a starter substring of s
+            # (or if no such element exists: None)
+    L=list(L)
+    if (not(substringDict)):
+        substringDict = buildDict_StarterSubstrings(L)
+    (lbound,rbound)=(-1,len(L))
+    while ((rbound-lbound)>1):
+        curdex = (lbound+rbound)//2
+        if (s >= L[curdex]):
+            lbound = curdex
+        else:
+            rbound = curdex
+    # lbound and rbound are now consecutive. s is either between them or is equal to lbound
+    # Look for a match
+    if (lbound<0):
+        return '' # no match
+    else:
+        if (s.startswith(L[lbound])):
+            return (L[lbound])
+        else:
+            checkSubstrings = substringDict.get(L[lbound],[])
+            while (checkSubstrings and (not(s.startswith(checkSubstrings[-1])))):
+                checkSubstrings.pop()
+            if (checkSubstrings):
+                return (checkSubstrings[-1])
+            else:
+                return '' # no match
