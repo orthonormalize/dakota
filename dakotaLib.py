@@ -116,6 +116,10 @@ def makeParams(M,sheetname='params'):
         tempParams[ip] = int(tempParams.get(ip,0))
     return(tempParams)
 
+def nestedDict_2_df(D,indexname):
+    if (indexname in D):
+        D=D[indexname]
+    return(pd.concat([pd.Series(DDDDD[col],name=col) for col in DDDDD.keys()],axis=1)
 
 
 # define substring search methods (for mapping vendor names to vendor basestrings)
