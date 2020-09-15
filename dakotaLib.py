@@ -119,11 +119,13 @@ def makeParams(M,sheetname='params'):
 def nestedDict_2_df(D,indexname):
     if (indexname in D):
         D=D[indexname]
-    return(pd.concat([pd.Series(DDDDD[col],name=col) for col in DDDDD.keys()],axis=1)
+    return(pd.concat([pd.Series(DDDDD[col],name=col) for col in DDDDD.keys()],axis=1))
 
 
 # define substring search methods (for mapping vendor names to vendor basestrings)
- 
+           
+           
+
 def buildDict_StarterSubstrings(L):
     # input must be list-like and already sorted
     # output: dict of possible extensions 
