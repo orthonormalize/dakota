@@ -70,7 +70,7 @@ def convertTypePS(ps0,targetString,dateformatStr=defaultDateFormat):
 class o4StrJoin:                          # item handle needs conversion from charList to str, via (''.join())
                                                 # two options: either (1) LITERAL or (2) IDENTIFIER
     def D_s2o():
-        D = dict([(a,oPKM) for a in setAlphaUS])          # assume alphaUS_identifier is an Attribute until proven otherwise
+        D = dict([(a,oPKMW) for a in setAlphaUS])          # assume alphaUS_identifier is an Attribute until proven otherwise
         D.update(dict([(a,oInt) for a in setDigits]))
         D.update({'@':oXat,'#':oHashat})
         D.update({k:oGrouper.BG_2_objtype(k) for k in oGrouper.BG}) # FLAG: includes some irrelevant BGs here
@@ -112,7 +112,7 @@ class oStr1(oStr):
 class oStr2(oStr):
     openingChar='"'
     closingChar='"'
-class oInt(oLiteral):          
+class oInt(oLiteral):
     target_type=int
     initiation_prechar = ''              
     keepEntranceCharacter = True 
@@ -146,12 +146,12 @@ class oPKM(oPKMW,oAttr):                  # {P,K,M} {obj property, dict key, met
 class oInternal:                          # object type is internal only (i.e. never visible at mT[-1])
     def obj2postobj(inclass):
         D_o2po = {oCallable:oPostCallable,oList:oPostList,oDict:oPostDict}
-        # FLAG: could fail if those keys ever become superclasses
+        # FLAG: note: this dictionary mapping could fail if any of D_o2po keys ever become superclasses
         return(D_o2po[inclass])
 class oList(oInternal,oGrouper):
     openingChar='['
     closingChar=']'
-class oDict(oInternal,oGrouper):
+class oDict(oInternal,oGrouper): # oDict is not operational yet
     openingChar='{'
     closingChar='}'
 class oCallable(oInternal,oGrouper,oPKM,oAttr):  # either instance method (df.sort_values()) or static method (pd.concat())
@@ -317,7 +317,7 @@ class Instruction:
         
         def resolve():
             # i.e. stepOut
-            # input state: ch is in {EG, ',', '.', '='}
+            # input state: ch is either in {EG, ',', '.'}, or ch is '(' interrupting an identifier 
             # output: resolved container[-1] into previous level of stack 
             # function: 
                 # 1) Pop container[-1]. Assemble: Combine / interpret / convert / etc., if necessary. 
@@ -328,8 +328,8 @@ class Instruction:
             R = container.pop()
             if (isinstance(mT[-1],o4StrJoin)):
                 R=''.join(R)
-                if (isinstance(mT[-1],oIdent) and (R.lower() in mT[-1].invalidLowers)): # hack: detects/typeConverts booleans
-                    (mT[-1],R) = mT[-1].invalidLowers[R.lower()]
+                if (isinstance(mT[-1],oIdent) and (R.lower() in mT[-1].invalidLowers)): 
+                    (mT[-1],R) = mT[-1].invalidLowers[R.lower()]  # hack: detects/typeConverts {booleans, None}
                 if (isinstance(mT[-1],oLiteral)):
                     R = mT[-1].converter()(R)
                 elif (isinstance(mT[-1],oXat)):
@@ -337,14 +337,15 @@ class Instruction:
                 elif (isinstance(mT[-1],oHashat)):
                     R = self.executeHashat(R)
             container[-1].append(R)
-            if (isinstance(mT[-1],oAttr)):
+            if (isinstance(mT[-1],oAttr) or isinstance(mT[-1],oPKMW)):
                 attribute = container[-1].pop()
                 attribute = identifierMapper.get(attribute,attribute)
-                baseObj = ((container[-1].pop()) if (container[-1]) else (None))
-                if (baseObj is None):
+                if (isinstance(mT[-1],oAttr)): # parent is already present in container
+                    baseObj = (container[-1].pop())
+                else: # This is an orphan identifier, so need to search for parent:
                     baseObj = self.getObj0(attribute)
                     if (isinstance(mT[-2],oCallable)): 
-                        # ancestor was never written as callableArg, so CDS still needs update!
+                        # ancestor of orphan had never been written as callableArg, so CDS still needs update!
                         retrieveArgumentName_Callable()
                 container[-1].append(getter(baseObj,attribute))
             elif (isinstance(mT[-1],oPostCallable)):
@@ -377,10 +378,14 @@ class Instruction:
             
         # 0) initialize:
         (mT,container,callableDictStack) = ([None],[[obj0]],[])
-        stepIn(oPre)
+        if (obj0):
+            stepIn(oPreAttr)
+        else:
+            stepIn(oPreNonAttr)
         
         # 1) process each char:
         for ch in s:
+            # update all the asserts here to catch more illegal input
             # A)
             if (isinstance(mT[-1],oStr)):
                 if (ch==mT[-1].closingChar):
@@ -389,25 +394,29 @@ class Instruction:
                     container[-1].append(ch)
             # B)
             elif (ch=='.'):
+                # assert valid?
                 resolve()
                 stepIn(oPreAttr)
             # C)
             elif (ch==','):
+                # assert valid?
                 resolve()
                 stepIn(oPreNonAttr)
             # D)
             elif (ch=='='):
+                assert ((isinstance(callableDictStack[-1]['cur'],int)) or (callableDictStack[-1]['cur'] is None)), \
+                                "Illegal string %s: one argument cannot be assigned to more than one keyword" % s
+                assert (isinstance(mT[-1],oPKMW)), 'Attempted to create keyword name %s, but it is not an Identifier' % keyword
+                assert (isinstance(mT[-2],oCallable)), 'Attempted keyword assignment %s but target is not a Callable' % keyword
                 keyword=(''.join(container.pop()))
                 container.append([])  # not a stepOut: restart a fresh container to hold the value of this argument
-                assert (isinstance(mT[-1],oPKMW)), 'Attempted to create keyword name %s but it is not an Identifier' % keyword
-                assert (isinstance(mT[-2],oCallable)), 'Attempted keyword assignment %s but target is not a Callable' % keyword
                 callableDictStack[-1].update({'kwQ':True,'cur':keyword}) # stage name of keyword into 'cur'
                 mT[-1] = oPreNonAttr()
             # E)
             elif ((ch in oGrouper.EG) and (ch not in oGrouper.BG)):
                 assert (isinstance(mT[-2],oGrouper)), 'End groupers are not valid when mT[-2] is %s' % str(mT[-2]) 
                 assert (ch==mT[-2].closingChar), 'Character "%s" is not a valid closer for %s' % (ch,str(mT[-2]))
-                if (isinstance(mT[-1],oPre)): # don't resolve() if contents are still empty, stepOut via pops alone
+                if (isinstance(mT[-1],oPre)): # don't resolve() if contents are still empty! Just stepOut via pops alone
                     mT.pop()
                     container.pop()
                 else:
@@ -422,8 +431,14 @@ class Instruction:
                     stepIn(oPreNonAttr)
                 else:
                     new_mT_candidate = o4StrJoin.starter2objtype(ch)()
-                    wasPreAttr_and_isInt = ((isinstance(mT[-1],oPreAttr)) and (isinstance(new_mT_candidate,oInt))) # eg 'L.0'
-                    mT[-1] = ((oIntAttr()) if (wasPreAttr_and_isInt) else (new_mT_candidate))
+                    if (isinstance(mT[-1],oPreAttr)):
+                        # (if object is dot-accessed, it must be an instance of oAttr. Modify mT_candidate accordingly!)
+                        # Is there a better way to solve this problem thru class relationships rather than bruteForce here?
+                        if (isinstance(new_mT_candidate,oInt)):   # e.g. 'L.0'
+                            new_mT_candidate = oIntAttr()      
+                        elif (isinstance(new_mT_candidate,oPKMW)):   # e.g. 'pd.concat'
+                            new_mT_candidate = oPKM()
+                    mT[-1] = new_mT_candidate
                     container[-1].append((ch) if (mT[-1].keepEntranceCharacter) else mT[-1].initiation_prechar)
             # G)
             elif (ch in oGrouper.BG): # i.e. '(' entering a callable
@@ -436,7 +451,7 @@ class Instruction:
             else:
                 assert (ch in mT[-1].validContinuationCharacters), 'Illegal char "%s" in %s' % (ch,str(mT[-1]))
                 container[-1].append(ch)
-            
+        
         # Final resolve():
         resolve()
         return(container[-1][-1])
