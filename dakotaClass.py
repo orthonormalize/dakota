@@ -582,8 +582,9 @@ class Statement(Instruction):
         # tablename should also be found as a key of X
             # Table needs fields: [PROC,SEQ,FILTER_PROPERTY,FILTER_TYPE,FILTER_VALUE,TARGET_PROPERTY,TARGET_VALUE]
         # if there is a ':' within tablename_seq:   use seq to further select subset of rows from computes
+        assert (len(self.X['@'])==1) and (isinstance(self.X['@'][0],pd.DataFrame)), \
+                        'Hashat function %s takes exactly one argument which must be a pandas DataFrame' % tablename_seq
         df = self.X['@'][0]
-        assert (isinstance(df,pd.DataFrame)), 'Argument passed to Hashat function must be a pandas DataFrame'
         TS = tablename_seq.split(':')
         assert (len(TS) <= 2), 'Illegal Hashat construction: too many colons'
         (tablename,seq) = ((TS[0],int(TS[1])) if (len(TS)==2) else (TS[0],None))
