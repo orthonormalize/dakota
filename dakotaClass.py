@@ -72,7 +72,7 @@ class o4StrJoin:                          # item handle needs conversion from ch
     def D_s2o():
         D = dict([(a,oPKMW) for a in setAlphaUS])          # assume alphaUS_identifier is an Attribute until proven otherwise
         D.update(dict([(a,oInt) for a in setDigits]))
-        D.update({'@':oXat,'#':oHashat})
+        D.update({'-':oInt,'@':oXat,'#':oHashat})
         D.update({k:oGrouper.BG_2_objtype(k) for k in oGrouper.BG}) # FLAG: includes some irrelevant BGs here
         return(D)
     
