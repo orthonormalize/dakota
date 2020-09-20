@@ -656,7 +656,9 @@ class Statement(Instruction):
                     df = df.loc[~rowmask]
                 else:
                     assert (row.TARGET_PROPERTY=="error"), "Invalid value for hashat:TARGET_PROPERTY: %s"%row.TARGET_PROPERTY
-                    assert (not(any(rowmask))), 'Hashat error caught at least one row of df'
+                    (fP0,fT0,fV0) = (row.FILTER_PROPERTY,row.FILTER_TYPE,row.FILTER_VALUE)
+                    assert (not(any(rowmask))), \
+                                'Hashat: found violation. At least one data row has condition (%s,%s,%s)' % (fP0,fT0,fV0)
             self.jsonDump(3,rowmask,"__dakson_hashat_rowmask_" + ('%02d'%row.Index))
             self.jsonDump(3,df,"__dakson_hashat_df_" + ('%02d'%row.Index))
             print(len(df))
