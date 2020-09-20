@@ -478,6 +478,9 @@ class Statement(Instruction):
             if (extension=='csv'):
                 dtype=(kwargs.pop('dtype') if ('dtype' in kwargs) else str)
                 df = pd.read_csv(inputfile, dtype=dtype, **kwargs)
+            elif (extension=='xls'):
+                dtype=(kwargs.pop('dtype') if ('dtype' in kwargs) else str)
+                df = pd.read_excel(inputfile, dtype=dtype, **kwargs)
             elif (extension=='xlsx'):
                 with open(inputfile, "rb") as f:
                     in_mem_file = io.BytesIO(f.read())
