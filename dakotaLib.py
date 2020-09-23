@@ -14,6 +14,10 @@ def timeString(includeTimeString=True):
     else:
         return('')
 
+def lastdayofmonth(myTimestamp):  # input arg should be a pandas timestamp object
+    (yr,mo)=(myTimestamp.year,myTimestamp.month)
+    day = calendar.monthrange(yr,mo)[1]
+    return(pd.Timestamp(year=yr, month=mo, day=day))
 
 def commandLine2Dict(CL):
     # input: list of command line arguments
