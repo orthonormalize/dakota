@@ -3,6 +3,7 @@
 import pandas as pd
 import io
 import datetime
+import calendar
 from openpyxl import load_workbook
 
 loweralphanum = lambda x: ''.join(ch for ch in x.lower() if ch.isalnum())
@@ -12,7 +13,8 @@ def timeString(includeTimeString=True):
         return (datetime.datetime.now().strftime('-%Y%m%d-%H%M%S-%f'))
     else:
         return('')
-    
+
+
 def commandLine2Dict(CL):
     # input: list of command line arguments
         # m: mapfile
