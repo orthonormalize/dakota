@@ -467,7 +467,7 @@ class Statement(Instruction):
         self.SET = self.k['TFT'].SET
         
     def readQC(self,inputfile,nameof_targetDF=None,sheetname=None,**kwargs):
-        # inputfile: str: name of CSV or XLSX file to read
+        # inputfile: str: name of CSV or XLSX file to read, or pandas dataframe
         # nameof_targetDF:  str: name (within X) of DataFrame object where result will be stored
             # this will determine what row subset from X['fields'] gets used
             # if omitted, use the variable name string from self.SET
@@ -503,8 +503,6 @@ class Statement(Instruction):
                     raise StopIteration('No data in input file %s, sheet %s' % (inputfile,sheetname))
             else:
                  raise ValueError('Cannot readQC input file with extension .%s' % extension)
-            df.fillna('', inplace=True)
-            df.replace(to_replace='',value=np.nan,inplace=True)   # all empty cells are np.nan after this step
             return(df)
 
         def rowFiltering(df,proc,nameof_targetDF,fieldTable):
@@ -545,7 +543,14 @@ class Statement(Instruction):
             nameof_targetDF = self.SET
         proc=self.procname
         fieldTable = self.X['fields'][self.X['fields']['proc']==self.procname]
-        df0 = file2df(inputfile,sheetname)
+        if (isinstance(inputfile,str)):
+            df0 = file2df(inputfile,sheetname)
+        elif (isinstance(inputfile,pd.DataFrame)):
+            df0 = inputfile
+        else:
+            assert False, "inputfile argument to readQC cannot be type %s" % type(inputfile)
+        df0.fillna('', inplace=True)
+        df0.replace(to_replace='',value=np.nan,inplace=True)   # all empty cells are np.nan after this step
         df0 = rowFiltering(df0,proc,nameof_targetDF,fieldTable)
         df1 = constructDF(df0,proc,nameof_targetDF,fieldTable)
         df1 = convert_dtypes(df1,proc,nameof_targetDF,fieldTable)
