@@ -472,6 +472,7 @@ class Statement(Instruction):
             # this will determine what row subset from X['fields'] gets used
             # if omitted, use the variable name string from self.SET
         # sheetname: str: if inputfile is XLSX, may need to specify sheetname if file contains more than one sheet
+        # kwargs are for passing to pd.read_csv or to load_workbook
         
         def file2df(inputfile,sheetname=None):
             assert (inputfile), 'missing input file name'
@@ -521,7 +522,8 @@ class Statement(Instruction):
                                        fieldTable.field0.apply(lambda x: len(x)>0))]
             FT_full = fieldTable.loc[(fieldTable.proc==proc) & (fieldTable.object==nameof_targetDF)]
             myField_2_rawField = {FT_direct.property[row]:FT_direct.field0[row] for row in FT_direct.index}
-            df1 = pd.DataFrame({f:df0[myField_2_rawField[f]] for f in FT_direct.property},columns=list(FT_full.property))
+            df1 = pd.DataFrame({f:df0[myField_2_rawField[f]] for f in FT_direct.property \
+                                           if (myField_2_rawField[f] in df0.columns)},  columns=list(FT_full.property))
             return(df1)
 
         def convert_dtypes(df1,proc,nameof_targetDF,fieldTable):
