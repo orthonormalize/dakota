@@ -596,6 +596,8 @@ class Statement(Instruction):
         # if there is a ':' within tablename_seq:   use seq to further select subset of rows from computes
         assert (len(self.X['@'])==1) and (isinstance(self.X['@'][0],pd.DataFrame)), \
                         'Hashat function %s takes exactly one argument which must be a pandas DataFrame' % tablename_seq
+        assert (self.GET==self.SET), 'Hashat function must return same object as operated on'
+        objectName = self.GET # varName of obj being processed. Used for down-selection of property entries from FieldTable
         df = self.X['@'][0]
         TS = tablename_seq.split(':')
         assert (len(TS) <= 2), 'Illegal Hashat construction: too many colons'
@@ -606,19 +608,17 @@ class Statement(Instruction):
         table.FILTER_TYPE = table.FILTER_TYPE.replace({'contains':'str.contains'})
         (pat,repl) = (r"^(([lg][et])|(eq)|(ne))$", lambda m: '__'+m.group(0)+'__')  # comparison operators
         table.FILTER_TYPE = table.FILTER_TYPE.str.replace(pat,repl)
-        print(list(table.FILTER_TYPE))
         
         # Process df:
-        # 1) downselect rows in df via self.procname and seq
+        # 1) downselect rows of Hashat spreadsheet via self.procname and seq
         tableKeeps = (table.PROC==self.procname)
         if (seq is not None):
             tableKeeps = (tableKeeps & (table.SEQ.astype(int) == seq))
-        print('keeping table rows:')
-        print(tableKeeps)
         hashat = table[tableKeeps]
         
         # 2) Form joined table:
-        fieldsInfo = self.X['fields'][self.X['fields']['proc']==self.procname]
+        selectedRows_FieldTable = (self.X['fields']['proc']==self.procname) & (self.X['fields']['object']==objectName)
+        fieldsInfo = self.X['fields'][selectedRows_FieldTable]
         hashat_J = (
             hashat.reset_index()
                 .merge(fieldsInfo.add_suffix('_fil'), how="left",
@@ -627,15 +627,12 @@ class Statement(Instruction):
                            left_on='TARGET_PROPERTY',right_on='property_tar',validate="m:1")
                 .set_index('index')
         )  
-        print('hashat_J:')
-        print(hashat_J)
         
-        # 3) Process Hashat, row by row:
-        print(len(df))
+        # 3) Process Hashat, row by row
         for row in hashat_J.itertuples():
             self.X['@'] = [df]
             print()
-            print('%02d' % row.Index)
+            print('Hashat row %02d' % row.Index)
             print(row)
             # 2A) Compute df rowmask:
             if (not(row.FILTER_PROPERTY)): # no filter ==> calculate all rows
@@ -652,8 +649,6 @@ class Statement(Instruction):
             # 2B) Calculate df column:
             self.X['@'] = [df.loc[rowmask]]
             print((np.count_nonzero(rowmask),len(rowmask)))
-            if (np.count_nonzero(rowmask)==1642):
-                print([kk for kk in rowmask.index if not(rowmask[kk])])
             if(any(fieldsInfo.property==row.TARGET_PROPERTY)):
                 print((type(row.TARGET_CALCULATION),row.TARGET_CALCULATION))
                 temp_ps0 = pd.Series(self.getObj(row.TARGET_CALCULATION),index=df[rowmask].index)
