@@ -5,6 +5,13 @@ import io
 import datetime
 import calendar
 from openpyxl import load_workbook
+from collections.abc import Iterable 
+
+def obj_if_string_or_scalar(obj):
+    if (not(isinstance(obj,Iterable)) or isinstance(obj,str)):
+        return(obj)
+    else:
+        return(None)
 
 loweralphanum = lambda x: ''.join(ch for ch in x.lower() if ch.isalnum())
 

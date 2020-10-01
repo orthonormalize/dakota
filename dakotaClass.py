@@ -262,7 +262,7 @@ class Instruction:
         return (lambda pandasSeries: convertTypePS(pandasSeries,targetString,dateformatStr=dateformatString))
     
     def jsonDump(self,priority,obj0,filebase,includeTimeString=True):
-        if (priority<=self.X['params']['picklosity']):
+        if (priority<=self.X['params']['verbosity']):
             if (isinstance(obj0,dict) and ('obj' in obj0) and ('task' in obj0) and \
                                     (isinstance(obj0['obj'],pd.Series) or isinstance(obj0['obj'],pd.DataFrame))):
                 try:
@@ -694,13 +694,15 @@ class Statement(Instruction):
     def execute(self):
         print()
         print()
-        print('placeholder: begin executing ' + self.TASK)
+        print('Begin executing ' + self.TASK)
         self.X['@'] = [self.getObj(ss,obj0=self.X) for ss in self.GET.split(',')]
-        print('finished Statement.GET.    Here is @:')
-        print(self.X['@'])
+        print('finished Statement.GET.    Contents of @:')
+        print('    '+str([type(obj) for obj in self.X['@']]))
+        print('    '+str([DL.obj_if_string_or_scalar(obj) for obj in self.X['@']]))
         self.X['#'] = self.getObj(self.TASK)
-        print('finished Statement.TASK.    Here is the result:')
-        print(self.X['#'])
+        print('finished Statement.TASK.')
+        print('    '+str(type(self.X['#'])))
+        print('    '+str(DL.obj_if_string_or_scalar(self.X['#'])))
         
         DiagnosisDictionary = {'task':self.TASK,'obj':self.X['#']}
         self.jsonDump(2,DiagnosisDictionary,"__dakson_s_")
@@ -724,7 +726,8 @@ class Statement(Instruction):
             else:
                 _ = ((setattr(parent,attrName,self.X['#'])) if (hasattr(parent,'__getattr__'))
                                                                    else (parent.__setitem__(attrName,self.X['#'])))
-        print('placeholder: done executing ' + self.TASK)
+        print('finished Statement.SET')
+        print('Finished executing ' + self.TASK)
     
 class Loop(Instruction):
     def __init__(self,*args,**kwargs):
