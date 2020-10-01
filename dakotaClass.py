@@ -1,19 +1,38 @@
 import numpy as np
 import pandas as pd
 import re
-import os
+from os import path,makedirs,listdir
 import fnmatch
-import calendar
-import io
 import datetime
-from collections import Counter
-from openpyxl import load_workbook
+import calendar
 import json
+import types
+from collections import Counter
+from io import BytesIO
+from openpyxl import load_workbook
 
+F0 = set(['eval','exec','globals','builtins','import','reload','buildclass','dir','getattr',
+                    'system','os','sys','glob','print','pickle','io','loader','spec',
+                    'absoluteimport','printfunction','subprocess','future','functools',
+                    'breakpoint','callable','compile','abc','st','stat',
+                    'distributorinit','config','setstringfunction','printoptions',
+                    'setprintoptions','frompyfunc','hdfstore','readhdf','readpickle','chmod'])
+                  
+F1 = set(['np','pd','re','fnmatch','datetime','calendar','json','types',
+                    'Counter','BytesIO','load_workbook','path','makedirs','listdir',
+                    'abs', 'all', 'any', 'ascii', 'bin', 'callable', 'chr',
+                    'divmod', 'format', 'hasattr', 'hash', 'hex', 'id', 'isinstance',
+                    'issubclass', 'iter', 'len', 'max', 'min', 'next', 'oct', 'ord',
+                    'pow', 'repr', 'round', 'sorted', 'sum', 'None',  'bool', 
+                    'complex', 'dict', 'enumerate', 'filter', 'float', 'frozenset',
+                    'int','list','map','object','range','reversed','set','slice',
+                    'staticmethod','str','super','tuple','type','zip'])
 
-globs = {k:globals()[k] for k in globals() if not (k.startswith('_'))}
+globs = {k:globals()[k] for k in globals() if k in F1}
+globs.update({'os':{'path':path,'makedirs':makedirs,'listdir':listdir}})
 import builtins
-builts = {s:getattr(builtins,s) for s in builtins.__dir__()}
+builts = {s:getattr(builtins,s) for s in builtins.__dir__() if s in F1}
+
 import dakotaLib as DL
 objs_DL = {k:getattr(DL,k) for k in DL.__dir__() if not (k.startswith('_'))}
 
@@ -181,19 +200,22 @@ class oPostStr(oPost,oLiteral):           # invoked after endstring character
 
 def getter(parent,item):
     item = identifierMapper.get(item,item)
-        # ALSO CHECK blacklist funcs
-    
+    assert ((DL.loweralphanum(str(item)) not in F0) or (parent is globs)),\
+                    "object %s is not accessible" % (item)
     if ((isinstance(parent,dict)) and (item in parent)):
-        return dict.get(parent,item)
+        obj=dict.get(parent,item)
     elif (isinstance(item,int)):
-        return parent[item]
+        obj=parent[item]
     elif (hasattr(parent,item)):
-        return getattr(parent,item)
+        obj=getattr(parent,item)
     else:  # hack!    for: executeHashat() where fT0 = 'str.contains' from pandas
         assert ((isinstance(item,str)) and ('.' in item)), 'cannot find item %s(%s) in parent %s' % \
                                                                 (item.__class__,item,parent)
         chain=item.split('.')
-        return(getter(getter(parent,chain[0]),'.'.join(chain[1:])))
+        obj=(getter(getter(parent,chain[0]),'.'.join(chain[1:])))
+    if isinstance(obj,types.ModuleType):
+        assert (DL.loweralphanum(str(item)) in F1), "cannot access module %s" % item 
+    return(obj)
     
 
 class Instruction:
@@ -486,7 +508,7 @@ class Statement(Instruction):
                 df = pd.read_excel(inputfile, dtype=dtype, **kwargs)
             elif (extension=='xlsx'):
                 with open(inputfile, "rb") as f:
-                    in_mem_file = io.BytesIO(f.read())
+                    in_mem_file = BytesIO(f.read())
                 wb = load_workbook(in_mem_file, read_only=True, **kwargs)
                 shNames = wb.sheetnames
                 if ((sheetname) and (sheetname not in shNames)):
@@ -759,7 +781,7 @@ class InstructionList:
                 bodies[nest-1].append(
                     Loop(X=self.X,controlString=loopEntranceTuplist.pop().TASK,body=bodies[nest],procname=self.procname))
                 nest-=1
-            else:
+            elif (T.TASK): # discard row if TASK is empty
                 bodies[nest].append(Statement(X=self.X,TFT=T,procname=self.procname))
         assert ((nest==0) and (not(loopEntranceTuplist))), 'proc%s: Unclosed Loop' % self.procname
         return bodies[0]
