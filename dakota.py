@@ -1,10 +1,8 @@
-# 20200601:
-# gamma main
+# dakota: main function
 
 import sys
 import dakotaLib as DL
 import dakotaClass as DC
-import pickle
 import pandas as pd
 #import zTestHarness as Z
 
